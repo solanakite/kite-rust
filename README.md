@@ -21,10 +21,14 @@ A Rust library that works great with [LiteSVM](https://litesvm.org) for testing 
 
 ## Installation
 
-Add this to your `Cargo.toml`:
+```
+cargo add --dev solana-kite
+```
+
+or add this to your `Cargo.toml`:
 
 ```toml
-[dependencies]
+[dev-dependencies]
 solana-kite = "0.1.0"
 ```
 
@@ -37,14 +41,14 @@ use litesvm::LiteSVM;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize test environment
     let mut litesvm = LiteSVM::new();
-    
+
     // Create wallets
     let mint_authority = create_wallet(&mut litesvm, 1_000_000_000)?; // 1 SOL
     let user = create_wallet(&mut litesvm, 1_000_000_000)?; // 1 SOL
-    
+
     // Create a token mint (6 decimals, like USDC)
     let mint = create_token_mint(&mut litesvm, &mint_authority, 6)?;
-    
+
     // Create associated token account for user
     let user_token_account = create_associated_token_account(
         &mut litesvm,
@@ -52,7 +56,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &mint.pubkey(),
         &user,
     )?;
-    
+
     // Mint 1000 tokens to user
     mint_tokens_to_account(
         &mut litesvm,
@@ -61,7 +65,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         1_000_000_000, // 1000 tokens with 6 decimals
         &mint_authority,
     )?;
-    
+
     println!("🎉 Successfully minted tokens!");
     Ok(())
 }
@@ -85,7 +89,7 @@ let wallets = create_wallets(&mut litesvm, 5, 1_000_000_000)?; // 5 wallets, 1 S
 
 ```rust
 use solana_kite::{
-    create_token_mint, create_associated_token_account, 
+    create_token_mint, create_associated_token_account,
     mint_tokens_to_account, get_token_account_balance, assert_token_balance
 };
 
