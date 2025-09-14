@@ -37,13 +37,13 @@ fn test_token_operations() {
     let user = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
     
     // Create token mint
-    let mint = create_token_mint(&mut litesvm, &mint_authority, 9).unwrap();
+    let mint = create_token_mint(&mut litesvm, &mint_authority, 9, None).unwrap();
     
     // Create associated token account
     let token_account = create_associated_token_account(
         &mut litesvm,
-        &user,
-        &mint.pubkey(),
+        &user.pubkey(),
+        &mint,
         &user,
     ).unwrap();
     
@@ -55,7 +55,7 @@ fn test_token_operations() {
     let mint_amount = 1_000_000_000;
     mint_tokens_to_account(
         &mut litesvm,
-        &mint.pubkey(),
+        &mint,
         &token_account,
         mint_amount,
         &mint_authority,
@@ -143,28 +143,33 @@ fn test_multiple_token_mints() {
     let user = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
     
     // Create multiple token mints with different decimals
-    let mint_6_decimals = create_token_mint(&mut litesvm, &mint_authority, 6).unwrap();
-    let mint_9_decimals = create_token_mint(&mut litesvm, &mint_authority, 9).unwrap();
+    // Use a specific mint address for the 6-decimal token
+    let specified_mint = Pubkey::new_unique();
+    let mint_6_decimals = create_token_mint(&mut litesvm, &mint_authority, 6, Some(specified_mint)).unwrap();
+    let mint_9_decimals = create_token_mint(&mut litesvm, &mint_authority, 9, None).unwrap();
     
+    // Verify that the 6-decimal mint uses our specified address
+    assert_eq!(mint_6_decimals, specified_mint, "6-decimal mint should use specified address");
+
     // Create token accounts for each mint
     let account_6 = create_associated_token_account(
         &mut litesvm,
-        &user,
-        &mint_6_decimals.pubkey(),
+        &user.pubkey(),
+        &mint_6_decimals,
         &user,
     ).unwrap();
     
     let account_9 = create_associated_token_account(
         &mut litesvm,
-        &user,
-        &mint_9_decimals.pubkey(),
+        &user.pubkey(),
+        &mint_9_decimals,
         &user,
     ).unwrap();
     
     // Mint different amounts to each account
     mint_tokens_to_account(
         &mut litesvm,
-        &mint_6_decimals.pubkey(),
+        &mint_6_decimals,
         &account_6,
         1_000_000, // 1 token with 6 decimals
         &mint_authority,
@@ -172,7 +177,7 @@ fn test_multiple_token_mints() {
     
     mint_tokens_to_account(
         &mut litesvm,
-        &mint_9_decimals.pubkey(),
+        &mint_9_decimals,
         &account_9,
         1_000_000_000, // 1 token with 9 decimals
         &mint_authority,

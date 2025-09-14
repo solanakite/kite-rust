@@ -20,7 +20,7 @@
 //!
 //! let mut litesvm = LiteSVM::new();
 //! let wallet = create_wallet(&mut litesvm, 1_000_000_000).unwrap(); // 1 SOL
-//! let mint = create_token_mint(&mut litesvm, &wallet, 6).unwrap(); // 6 decimals
+//! let mint = create_token_mint(&mut litesvm, &wallet, 6, None).unwrap(); // 6 decimals
 //! ```
 
 pub mod error;

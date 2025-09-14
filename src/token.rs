@@ -12,18 +12,20 @@ use spl_token::instruction::mint_to;
 
 /// Creates a new SPL token mint with the specified mint authority and decimals.
 ///
-/// This function creates a new keypair for the mint, sets up the account with proper
-/// rent exemption, and initializes it as an SPL token mint.
+/// This function creates a new token mint account with proper rent exemption and 
+/// initializes it as an SPL token mint. You can optionally specify a custom mint
+/// address, or let the function generate a unique one.
 ///
 /// # Arguments
 ///
 /// * `litesvm` - Mutable reference to the LiteSVM instance
 /// * `mint_authority` - Keypair that will have authority to mint tokens
 /// * `decimals` - Number of decimal places for the token (0-9)
+/// * `mint` - Optional custom public key for the mint. If None, a unique address will be generated
 ///
 /// # Returns
 ///
-/// Returns the keypair for the newly created mint.
+/// Returns the public key of the newly created mint.
 ///
 /// # Errors
 ///
@@ -35,22 +37,30 @@ use spl_token::instruction::mint_to;
 /// use solana_kite::create_token_mint;
 /// use litesvm::LiteSVM;
 /// use solana_keypair::Keypair;
+/// use solana_pubkey::Pubkey;
 ///
 /// let mut litesvm = LiteSVM::new();
 /// let mint_authority = Keypair::new();
-/// let mint = create_token_mint(&mut litesvm, &mint_authority, 6);
+/// 
+/// // Create a mint with auto-generated address
+/// let mint_pubkey = create_token_mint(&mut litesvm, &mint_authority, 6, None);
+/// 
+/// // Or create a mint with a custom address
+/// let custom_mint = Pubkey::new_unique();
+/// let mint_pubkey = create_token_mint(&mut litesvm, &mint_authority, 6, Some(custom_mint));
 /// ```
 pub fn create_token_mint(
     litesvm: &mut LiteSVM,
     mint_authority: &Keypair,
     decimals: u8,
-) -> Result<Keypair, SolanaKiteError> {
-    let mint = Keypair::new();
+    mint: Option<Pubkey>,
+) -> Result<Pubkey, SolanaKiteError> {
+    let mint = mint.unwrap_or(Pubkey::new_unique());
     let rent = litesvm.minimum_balance_for_rent_exemption(82);
 
     litesvm
         .set_account(
-            mint.pubkey(),
+            mint,
             solana_account::Account {
                 lamports: rent,
                 data: vec![0u8; 82],
@@ -63,7 +73,7 @@ pub fn create_token_mint(
 
     let initialize_mint_instruction = spl_token::instruction::initialize_mint(
         &spl_token::ID,
-        &mint.pubkey(),
+        &mint,
         &mint_authority.pubkey(),
         None,
         decimals,
@@ -85,14 +95,15 @@ pub fn create_token_mint(
 /// Creates an associated token account for the given owner and mint.
 ///
 /// This function creates an associated token account (ATA) which is a deterministic
-/// address derived from the owner and mint addresses.
+/// address derived from the owner and mint addresses. The payer funds the account
+/// creation and signs the transaction.
 ///
 /// # Arguments
 ///
 /// * `litesvm` - Mutable reference to the LiteSVM instance
-/// * `owner` - Keypair that will own the token account
+/// * `owner` - Public key of the account that will own the token account
 /// * `mint` - Public key of the token mint
-/// * `payer` - Keypair that will pay for the account creation
+/// * `payer` - Keypair that will pay for the account creation and sign the transaction
 ///
 /// # Returns
 ///
@@ -112,31 +123,32 @@ pub fn create_token_mint(
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let mut litesvm = LiteSVM::new();
-/// let owner = create_wallet(&mut litesvm, 1_000_000_000)?;
+/// let owner_wallet = create_wallet(&mut litesvm, 1_000_000_000)?;
+/// let payer_wallet = create_wallet(&mut litesvm, 1_000_000_000)?;
 /// let mint_authority = create_wallet(&mut litesvm, 1_000_000_000)?;
-/// let mint = create_token_mint(&mut litesvm, &mint_authority, 6)?;
+/// let mint_pubkey = create_token_mint(&mut litesvm, &mint_authority, 6, None)?;
 /// 
 /// let token_account = create_associated_token_account(
 ///     &mut litesvm,
-///     &owner,
-///     &mint.pubkey(),
-///     &owner,
+///     &owner_wallet.pubkey(),
+///     &mint_pubkey,
+///     &payer_wallet,
 /// )?;
 /// # Ok(())
 /// # }
 /// ```
 pub fn create_associated_token_account(
     litesvm: &mut LiteSVM,
-    owner: &Keypair,
+    owner: &Pubkey,
     mint: &Pubkey,
     payer: &Keypair,
 ) -> Result<Pubkey, SolanaKiteError> {
     let associated_token_account =
-        spl_associated_token_account::get_associated_token_address(&owner.pubkey(), mint);
+        spl_associated_token_account::get_associated_token_address(owner, mint);
 
     let create_ata_instruction = create_ata_instruction(
         &payer.pubkey(),
-        &owner.pubkey(),
+        &owner,
         mint,
         &spl_token::id(),
     );
@@ -181,12 +193,12 @@ pub fn create_associated_token_account(
 /// let mut litesvm = LiteSVM::new();
 /// let mint_authority = create_wallet(&mut litesvm, 1_000_000_000)?;
 /// let owner = create_wallet(&mut litesvm, 1_000_000_000)?;
-/// let mint = create_token_mint(&mut litesvm, &mint_authority, 6)?;
-/// let token_account = create_associated_token_account(&mut litesvm, &owner, &mint.pubkey(), &owner)?;
+/// let mint = create_token_mint(&mut litesvm, &mint_authority, 6, None)?;
+/// let token_account = create_associated_token_account(&mut litesvm, &owner.pubkey(), &mint, &owner)?;
 /// 
 /// mint_tokens_to_account(
 ///     &mut litesvm,
-///     &mint.pubkey(),
+///     &mint,
 ///     &token_account,
 ///     1_000_000, // 1 token with 6 decimals
 ///     &mint_authority,
