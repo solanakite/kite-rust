@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.2.0]
+
+- Update LiteSVM and Solana dependencies to latest supported by `spl-token` crate.
+- `create_token_mint()` (thanks @M-Daeva)
+  - Added option for a custom mint address
+  - Now returns Result<Keypair, SolanaKiteError> to Result<Pubkey, SolanaKiteError> - now returns just the public key instead of the full keypair
+  - Used Pubkey::new_unique(): Instead of Keypair::new() for generating random addresses
+- `create_associated_token_account()` (thanks @M-Daeva!)
+  - Changed `owner` parameter from &Keypair to &Pubkey - as you only need the public key, not the full keypair
+  - Removed owner from signing: The owner no longer needs to sign the transaction since only the payer needs to sign for ATA creation.
+
 ## [0.1.0] - 2025-01-26
 
 ### Added

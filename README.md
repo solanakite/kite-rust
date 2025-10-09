@@ -29,7 +29,7 @@ or add this to your `Cargo.toml`:
 
 ```toml
 [dev-dependencies]
-solana-kite = "0.1.0"
+solana-kite = "0.2.0"
 ```
 
 ## Quick Start
