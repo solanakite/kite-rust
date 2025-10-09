@@ -1,6 +1,6 @@
 [package]
 name = "solana-kite"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 authors = ["Mike MacCana <mike.maccana@gmail.com>"]
 description = "High level client-side tools for testing your Solana programs"
@@ -10,12 +10,16 @@ homepage = "https://github.com/solanakite/kite-rust"
 documentation = "https://docs.rs/solana-kite"
 readme = "README.md"
 keywords = ["solana", "blockchain", "testing", "client", "utilities"]
-categories = ["development-tools::testing", "api-bindings", "cryptography::cryptocurrencies"]
+categories = [
+    "development-tools::testing",
+    "api-bindings",
+    "cryptography::cryptocurrencies",
+]
 exclude = ["target/", "test-ledger/", ".DS_Store"]
 
 [dependencies]
 # Core Solana dependencies - matching working anchor-escrow-2025 versions
-litesvm = "0.6.1"
+litesvm = "0.7.0"
 solana-account = "2.2.1"
 solana-instruction = "2.2.1"
 solana-keypair = "2.2.1"
