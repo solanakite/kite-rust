@@ -9,7 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing yet.
 
-## [0.2.0]
+## [0.2.1] - 2025-10-09
+
+### Changed
+
+- Changed dependencies to match Anchor 0.32.0 requirements
+- Changed litesvm to 0.7.x
+- Changed Solana dependencies to specific versions required by Anchor 0.32.0:
+  - solana-account: 2.2.1
+  - solana-instruction: 2.3.0
+  - solana-pubkey: 2.4.0
+  - solana-message: 2.4.0
+  - solana-transaction: 2.2.3
+- Changed SPL token dependencies:
+  - spl-token: 8.0.0
+  - spl-associated-token-account: 7.0.0
+- Changed tokio to 1.47
+
+## [0.2.0] - 2025-10-09
+
+### Changed
 
 - Update LiteSVM and Solana dependencies to latest supported by `spl-token` crate.
 - `create_token_mint()` (thanks @M-Daeva)
