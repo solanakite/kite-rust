@@ -29,16 +29,16 @@ fn main() -> Result<(), SolanaKiteError> {
     println!("✅ Created user wallet: {}", user.pubkey());
 
     // Create a token mint with 6 decimals (like USDC)
-    let mint = create_token_mint(&mut litesvm, &mint_authority, 6)?;
-    println!("✅ Created token mint: {}", mint.pubkey());
+    let mint = create_token_mint(&mut litesvm, &mint_authority, 6, None)?;
+    println!("✅ Created token mint: {}", mint);
     println!("   Decimals: 6");
     println!("   Mint authority: {}", mint_authority.pubkey());
 
     // Create an associated token account for the user
     let user_token_account = create_associated_token_account(
         &mut litesvm,
-        &user,
-        &mint.pubkey(),
+        &user.pubkey(),
+        &mint,
         &user,
     )?;
     println!("✅ Created associated token account: {}", user_token_account);
@@ -52,7 +52,7 @@ fn main() -> Result<(), SolanaKiteError> {
     let mint_amount = 1_000_000_000; // 1000 tokens with 6 decimals
     mint_tokens_to_account(
         &mut litesvm,
-        &mint.pubkey(),
+        &mint,
         &user_token_account,
         mint_amount,
         &mint_authority,
@@ -72,7 +72,7 @@ fn main() -> Result<(), SolanaKiteError> {
     let additional_mint = 500_000_000; // 500 more tokens
     mint_tokens_to_account(
         &mut litesvm,
-        &mint.pubkey(),
+        &mint,
         &user_token_account,
         additional_mint,
         &mint_authority,
