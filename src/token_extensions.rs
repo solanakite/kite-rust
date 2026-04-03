@@ -1,6 +1,6 @@
-//! Token-2022 (Token Extensions) operations for Solana.
+//! Token Extensions operations for Solana.
 //!
-//! This module provides helpers for creating and interacting with Token-2022 mints
+//! This module provides helpers for creating and interacting with Token Extensions mints
 //! and accounts. All instructions are built from raw bytes to avoid depending on
 //! the `spl-token-2022` crate, which can cause version conflicts with `anchor-lang`.
 //!
@@ -18,7 +18,7 @@
 //! # Example
 //!
 //! ```rust
-//! use solana_kite::token_2022::{create_token_2022_mint, MintExtension};
+//! use solana_kite::token_extensions::{create_token_extensions_mint, MintExtension};
 //! use solana_kite::create_wallet;
 //! use litesvm::LiteSVM;
 //! use solana_pubkey::Pubkey;
@@ -27,7 +27,7 @@
 //! let mut litesvm = LiteSVM::new();
 //! let authority = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
 //!
-//! let mint = create_token_2022_mint(
+//! let mint = create_token_extensions_mint(
 //!     &mut litesvm,
 //!     &authority,
 //!     6,
@@ -49,11 +49,11 @@ use solana_transaction::Transaction;
 
 // ─── Program IDs ─────────────────────────────────────────────────────────────
 
-/// The Token-2022 program ID.
-pub const TOKEN_2022_PROGRAM_ID: Pubkey =
+/// The Token Extensions program ID.
+pub const TOKEN_EXTENSIONS_PROGRAM_ID: Pubkey =
     solana_pubkey::pubkey!("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
 
-/// The Associated Token Account program ID (shared with Token-2022).
+/// The Associated Token Account program ID (shared with Token Extensions).
 const ASSOCIATED_TOKEN_PROGRAM_ID: Pubkey =
     solana_pubkey::pubkey!("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
 
@@ -63,7 +63,7 @@ const SYSTEM_PROGRAM_ID: Pubkey =
 
 // ─── Account Layout Constants ────────────────────────────────────────────────
 
-/// Base size for Account (not Mint). The Token-2022 extension framework pads
+/// Base size for Account (not Mint). The Token Extensions extension framework pads
 /// all account types (including Mints) to this size before appending extensions.
 const BASE_ACCOUNT_LENGTH: usize = 165;
 
@@ -79,10 +79,10 @@ const TLV_HEADER_SIZE: usize = 4;
 
 // ─── Extension Types ─────────────────────────────────────────────────────────
 
-/// Extensions that can be applied to a Token-2022 mint at creation time.
+/// Extensions that can be applied to a Token Extensions mint at creation time.
 ///
-/// Each variant corresponds to a Token-2022 extension that modifies mint behaviour.
-/// Extensions are initialized *before* the mint itself, following the Token-2022
+/// Each variant corresponds to a Token Extensions extension that modifies mint behaviour.
+/// Extensions are initialized *before* the mint itself, following the Token Extensions
 /// protocol requirement.
 #[derive(Debug, Clone)]
 pub enum MintExtension {
@@ -176,7 +176,7 @@ impl MintExtension {
                 data.extend_from_slice(&mint_authority.to_bytes()); // authority
                 data.extend_from_slice(&program_id.to_bytes());     // program_id
                 Instruction {
-                    program_id: TOKEN_2022_PROGRAM_ID,
+                    program_id: TOKEN_EXTENSIONS_PROGRAM_ID,
                     accounts: vec![AccountMeta::new(*mint, false)],
                     data,
                 }
@@ -201,7 +201,7 @@ impl MintExtension {
                 data.extend_from_slice(&fee_basis_points.to_le_bytes());
                 data.extend_from_slice(&maximum_fee.to_le_bytes());
                 Instruction {
-                    program_id: TOKEN_2022_PROGRAM_ID,
+                    program_id: TOKEN_EXTENSIONS_PROGRAM_ID,
                     accounts: vec![AccountMeta::new(*mint, false)],
                     data,
                 }
@@ -214,7 +214,7 @@ impl MintExtension {
                 data.push(1);  // COption::Some
                 data.extend_from_slice(&close_authority.to_bytes());
                 Instruction {
-                    program_id: TOKEN_2022_PROGRAM_ID,
+                    program_id: TOKEN_EXTENSIONS_PROGRAM_ID,
                     accounts: vec![AccountMeta::new(*mint, false)],
                     data,
                 }
@@ -225,7 +225,7 @@ impl MintExtension {
                 data.push(35); // InitializePermanentDelegate
                 data.extend_from_slice(&delegate.to_bytes());
                 Instruction {
-                    program_id: TOKEN_2022_PROGRAM_ID,
+                    program_id: TOKEN_EXTENSIONS_PROGRAM_ID,
                     accounts: vec![AccountMeta::new(*mint, false)],
                     data,
                 }
@@ -233,7 +233,7 @@ impl MintExtension {
             MintExtension::NonTransferable => {
                 // InitializeNonTransferableMint (instruction 32)
                 Instruction {
-                    program_id: TOKEN_2022_PROGRAM_ID,
+                    program_id: TOKEN_EXTENSIONS_PROGRAM_ID,
                     accounts: vec![AccountMeta::new(*mint, false)],
                     data: vec![32],
                 }
@@ -241,7 +241,7 @@ impl MintExtension {
             MintExtension::DefaultAccountState { state } => {
                 // DefaultAccountStateExtension (prefix=28) + Initialize (sub=0) + state(1)
                 Instruction {
-                    program_id: TOKEN_2022_PROGRAM_ID,
+                    program_id: TOKEN_EXTENSIONS_PROGRAM_ID,
                     accounts: vec![AccountMeta::new(*mint, false)],
                     data: vec![28, 0, *state],
                 }
@@ -259,7 +259,7 @@ impl MintExtension {
                 data.extend_from_slice(&rate_authority.to_bytes()); // OptionalNonZeroPubkey
                 data.extend_from_slice(&rate.to_le_bytes());
                 Instruction {
-                    program_id: TOKEN_2022_PROGRAM_ID,
+                    program_id: TOKEN_EXTENSIONS_PROGRAM_ID,
                     accounts: vec![AccountMeta::new(*mint, false)],
                     data,
                 }
@@ -276,7 +276,7 @@ impl MintExtension {
                 data.extend_from_slice(&authority.to_bytes());
                 data.extend_from_slice(&metadata_address.to_bytes());
                 Instruction {
-                    program_id: TOKEN_2022_PROGRAM_ID,
+                    program_id: TOKEN_EXTENSIONS_PROGRAM_ID,
                     accounts: vec![AccountMeta::new(*mint, false)],
                     data,
                 }
@@ -289,7 +289,7 @@ impl MintExtension {
 
 fn calculate_mint_size(extensions: &[MintExtension]) -> usize {
     if extensions.is_empty() {
-        // Without extensions, a Token-2022 mint is the same size as SPL Token
+        // Without extensions, a Token Extensions mint is the same size as SPL Token
         return 82;
     }
     let extension_data_size: usize = extensions.iter().map(|ext| ext.tlv_size()).sum();
@@ -298,10 +298,10 @@ fn calculate_mint_size(extensions: &[MintExtension]) -> usize {
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
-/// Creates a new Token-2022 mint with the specified extensions.
+/// Creates a new Token Extensions mint with the specified extensions.
 ///
 /// Extensions are initialized before the mint itself, as required by the
-/// Token-2022 program. The `mint_authority` is both the payer and the
+/// Token Extensions program. The `mint_authority` is both the payer and the
 /// mint authority for the new mint.
 ///
 /// # Arguments
@@ -313,12 +313,12 @@ fn calculate_mint_size(extensions: &[MintExtension]) -> usize {
 ///
 /// # Returns
 ///
-/// The public key of the newly created Token-2022 mint.
+/// The public key of the newly created Token Extensions mint.
 ///
 /// # Example
 ///
 /// ```rust
-/// use solana_kite::token_2022::{create_token_2022_mint, MintExtension};
+/// use solana_kite::token_extensions::{create_token_extensions_mint, MintExtension};
 /// use solana_kite::create_wallet;
 /// use litesvm::LiteSVM;
 /// use solana_pubkey::Pubkey;
@@ -328,7 +328,7 @@ fn calculate_mint_size(extensions: &[MintExtension]) -> usize {
 /// let authority = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
 /// let hook_program = Pubkey::new_unique();
 ///
-/// let mint = create_token_2022_mint(
+/// let mint = create_token_extensions_mint(
 ///     &mut litesvm,
 ///     &authority,
 ///     6,
@@ -338,7 +338,7 @@ fn calculate_mint_size(extensions: &[MintExtension]) -> usize {
 ///     ],
 /// ).unwrap();
 /// ```
-pub fn create_token_2022_mint(
+pub fn create_token_extensions_mint(
     litesvm: &mut LiteSVM,
     mint_authority: &Keypair,
     decimals: u8,
@@ -348,21 +348,21 @@ pub fn create_token_2022_mint(
     let mint_size = calculate_mint_size(extensions);
     let rent = litesvm.minimum_balance_for_rent_exemption(mint_size);
 
-    // Pre-allocate the account owned by Token-2022
+    // Pre-allocate the account owned by Token Extensions
     litesvm
         .set_account(
             mint,
             solana_account::Account {
                 lamports: rent,
                 data: vec![0u8; mint_size],
-                owner: TOKEN_2022_PROGRAM_ID,
+                owner: TOKEN_EXTENSIONS_PROGRAM_ID,
                 executable: false,
                 rent_epoch: 0,
             },
         )
         .map_err(|e| {
             SolanaKiteError::TokenOperationFailed(format!(
-                "Failed to create Token-2022 mint account: {:?}",
+                "Failed to create Token Extensions mint account: {:?}",
                 e
             ))
         })?;
@@ -382,7 +382,7 @@ pub fn create_token_2022_mint(
     init_mint_data.push(0); // freeze_authority: None
 
     instructions.push(Instruction {
-        program_id: TOKEN_2022_PROGRAM_ID,
+        program_id: TOKEN_EXTENSIONS_PROGRAM_ID,
         accounts: vec![AccountMeta::new(mint, false)],
         data: init_mint_data,
     });
@@ -394,7 +394,7 @@ pub fn create_token_2022_mint(
 
     litesvm.send_transaction(transaction).map_err(|e| {
         SolanaKiteError::TokenOperationFailed(format!(
-            "Failed to initialize Token-2022 mint: {:?}",
+            "Failed to initialize Token Extensions mint: {:?}",
             e
         ))
     })?;
@@ -402,22 +402,22 @@ pub fn create_token_2022_mint(
     Ok(mint)
 }
 
-/// Creates an associated token account for a Token-2022 mint.
+/// Creates an associated token account for a Token Extensions mint.
 ///
 /// Derives the ATA address from the owner and mint, then creates it using
-/// the Associated Token Account program (which supports both Token and Token-2022).
+/// the Associated Token Account program (which supports both Token and Token Extensions).
 ///
 /// # Arguments
 ///
 /// * `litesvm` - Mutable reference to the LiteSVM instance
 /// * `owner` - Public key of the account that will own the token account
-/// * `mint` - Public key of the Token-2022 mint
+/// * `mint` - Public key of the Token Extensions mint
 /// * `payer` - Keypair that pays for account creation
 ///
 /// # Returns
 ///
 /// The public key of the created associated token account.
-pub fn create_token_2022_account(
+pub fn create_token_extensions_account(
     litesvm: &mut LiteSVM,
     owner: &Pubkey,
     mint: &Pubkey,
@@ -435,7 +435,7 @@ pub fn create_token_2022_account(
             AccountMeta::new_readonly(*owner, false),                // wallet address
             AccountMeta::new_readonly(*mint, false),                 // token mint
             AccountMeta::new_readonly(SYSTEM_PROGRAM_ID, false),     // system program
-            AccountMeta::new_readonly(TOKEN_2022_PROGRAM_ID, false), // token program
+            AccountMeta::new_readonly(TOKEN_EXTENSIONS_PROGRAM_ID, false), // token program
         ],
         data: vec![], // CreateAssociatedTokenAccount has no data
     };
@@ -447,7 +447,7 @@ pub fn create_token_2022_account(
 
     litesvm.send_transaction(transaction).map_err(|e| {
         SolanaKiteError::TokenOperationFailed(format!(
-            "Failed to create Token-2022 associated token account: {:?}",
+            "Failed to create Token Extensions associated token account: {:?}",
             e
         ))
     })?;
@@ -455,16 +455,16 @@ pub fn create_token_2022_account(
     Ok(associated_token_account)
 }
 
-/// Mints tokens to a Token-2022 token account.
+/// Mints tokens to a Token Extensions token account.
 ///
 /// # Arguments
 ///
 /// * `litesvm` - Mutable reference to the LiteSVM instance
-/// * `mint` - Public key of the Token-2022 mint
+/// * `mint` - Public key of the Token Extensions mint
 /// * `token_account` - Public key of the destination token account
 /// * `amount` - Number of tokens to mint (in base units)
 /// * `mint_authority` - Keypair with mint authority
-pub fn mint_tokens_to_account_2022(
+pub fn mint_tokens_to_token_extensions_account(
     litesvm: &mut LiteSVM,
     mint: &Pubkey,
     token_account: &Pubkey,
@@ -476,7 +476,7 @@ pub fn mint_tokens_to_account_2022(
     data.extend_from_slice(&amount.to_le_bytes());
 
     let instruction = Instruction {
-        program_id: TOKEN_2022_PROGRAM_ID,
+        program_id: TOKEN_EXTENSIONS_PROGRAM_ID,
         accounts: vec![
             AccountMeta::new(*mint, false),
             AccountMeta::new(*token_account, false),
@@ -492,7 +492,7 @@ pub fn mint_tokens_to_account_2022(
 
     litesvm.send_transaction(transaction).map_err(|e| {
         SolanaKiteError::TokenOperationFailed(format!(
-            "Failed to mint Token-2022 tokens: {:?}",
+            "Failed to mint Token Extensions tokens: {:?}",
             e
         ))
     })?;
@@ -500,9 +500,9 @@ pub fn mint_tokens_to_account_2022(
     Ok(())
 }
 
-/// Transfers tokens between Token-2022 accounts using TransferChecked.
+/// Transfers tokens between Token Extensions accounts using TransferChecked.
 ///
-/// TransferChecked is required for Token-2022 tokens (especially those with
+/// TransferChecked is required for Token Extensions tokens (especially those with
 /// transfer hooks, transfer fees, or other extensions that need to inspect
 /// the transfer).
 ///
@@ -516,7 +516,7 @@ pub fn mint_tokens_to_account_2022(
 /// * `amount` - Amount to transfer (in base units)
 /// * `decimals` - Mint decimals (must match the mint's configured decimals)
 /// * `extra_accounts` - Additional account metas required by transfer hooks
-pub fn transfer_checked_token_2022(
+pub fn transfer_checked_token_extensions(
     litesvm: &mut LiteSVM,
     source: &Pubkey,
     mint: &Pubkey,
@@ -540,7 +540,7 @@ pub fn transfer_checked_token_2022(
     accounts.extend_from_slice(extra_accounts);
 
     let instruction = Instruction {
-        program_id: TOKEN_2022_PROGRAM_ID,
+        program_id: TOKEN_EXTENSIONS_PROGRAM_ID,
         accounts,
         data,
     };
@@ -552,7 +552,7 @@ pub fn transfer_checked_token_2022(
 
     litesvm.send_transaction(transaction).map_err(|e| {
         SolanaKiteError::TokenOperationFailed(format!(
-            "Failed to transfer Token-2022 tokens: {:?}",
+            "Failed to transfer Token Extensions tokens: {:?}",
             e
         ))
     })?;
@@ -562,15 +562,15 @@ pub fn transfer_checked_token_2022(
 
 // ─── Utility Functions ───────────────────────────────────────────────────────
 
-/// Derives the associated token address for a Token-2022 mint.
+/// Derives the associated token address for a Token Extensions mint.
 ///
 /// Uses the same derivation as the standard ATA program, but with the
-/// Token-2022 program ID.
+/// Token Extensions program ID.
 pub fn get_associated_token_address_2022(owner: &Pubkey, mint: &Pubkey) -> Pubkey {
     let (address, _bump) = Pubkey::find_program_address(
         &[
             owner.as_ref(),
-            TOKEN_2022_PROGRAM_ID.as_ref(),
+            TOKEN_EXTENSIONS_PROGRAM_ID.as_ref(),
             mint.as_ref(),
         ],
         &ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -578,22 +578,22 @@ pub fn get_associated_token_address_2022(owner: &Pubkey, mint: &Pubkey) -> Pubke
     address
 }
 
-/// Gets the token balance of a Token-2022 token account.
+/// Gets the token balance of a Token Extensions token account.
 ///
 /// The account layout is the same as SPL Token for the base fields:
 /// amount is at bytes 64..72 (u64, little-endian).
-pub fn get_token_2022_balance(
+pub fn get_token_extensions_balance(
     litesvm: &LiteSVM,
     token_account: &Pubkey,
 ) -> Result<u64, SolanaKiteError> {
     let account = litesvm.get_account(token_account).ok_or_else(|| {
-        SolanaKiteError::TokenOperationFailed("Token-2022 account not found".to_string())
+        SolanaKiteError::TokenOperationFailed("Token Extensions account not found".to_string())
     })?;
 
     let data = &account.data;
     if data.len() < 72 {
         return Err(SolanaKiteError::TokenOperationFailed(
-            "Invalid Token-2022 account data length".to_string(),
+            "Invalid Token Extensions account data length".to_string(),
         ));
     }
 
@@ -601,7 +601,7 @@ pub fn get_token_2022_balance(
     let amount = u64::from_le_bytes(
         data[64..72].try_into().map_err(|_| {
             SolanaKiteError::TokenOperationFailed(
-                "Failed to parse Token-2022 token amount".to_string(),
+                "Failed to parse Token Extensions token amount".to_string(),
             )
         })?,
     );
@@ -609,16 +609,16 @@ pub fn get_token_2022_balance(
     Ok(amount)
 }
 
-/// Asserts that a Token-2022 token account has the expected balance.
+/// Asserts that a Token Extensions token account has the expected balance.
 ///
-/// Convenience wrapper around [`get_token_2022_balance`] for test assertions.
-pub fn assert_token_2022_balance(
+/// Convenience wrapper around [`get_token_extensions_balance`] for test assertions.
+pub fn assert_token_extensions_balance(
     litesvm: &LiteSVM,
     token_account: &Pubkey,
     expected_balance: u64,
     message: &str,
 ) {
     let actual_balance =
-        get_token_2022_balance(litesvm, token_account).expect("Failed to get Token-2022 balance");
+        get_token_extensions_balance(litesvm, token_account).expect("Failed to get Token Extensions balance");
     assert_eq!(actual_balance, expected_balance, "{}", message);
 }

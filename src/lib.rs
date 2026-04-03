@@ -9,7 +9,7 @@
 //! - **Program Deployment**: Deploy programs to a test environment (from files or bytes)
 //! - **Transaction Utilities**: Send transactions from instructions with proper signing
 //! - **Token Operations**: Create mints, associated token accounts, and mint tokens
-//! - **Token-2022 Support**: Create Token-2022 mints with extensions, transfer hooks, and more
+//! - **Token Extensions Support**: Create Token Extensions mints with extensions, transfer hooks, and more
 //! - **Account Management**: Create wallets, check balances, and manage account state
 //! - **PDA Utilities**: Generate Program Derived Addresses with type-safe seed handling
 //!
@@ -28,7 +28,7 @@ pub mod error;
 pub mod pda;
 pub mod program;
 pub mod token;
-pub mod token_2022;
+pub mod token_extensions;
 pub mod transaction;
 pub mod transfer_hook;
 pub mod wallet;

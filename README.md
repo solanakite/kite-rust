@@ -4,14 +4,14 @@
 [![Documentation](https://docs.rs/solana-kite/badge.svg)](https://docs.rs/solana-kite)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 
-A Rust library that works great with [LiteSVM](https://litesvm.org) for testing your Solana programs. High-level abstractions for common Solana operations — wallets, transactions, SPL tokens, Token-2022 extensions, transfer hooks, PDAs, and program deployment.
+A Rust library that works great with [LiteSVM](https://litesvm.org) for testing your Solana programs. High-level abstractions for common Solana operations — wallets, transactions, SPL tokens, Token Extensions, transfer hooks, PDAs, and program deployment.
 
 ## Features
 
 - 🚀 **Program Deployment**: Deploy programs from files or bytes (`include_bytes!`)
 - 💸 **Transaction Utilities**: Send transactions from instructions with proper signing
 - 🪙 **SPL Token Operations**: Create mints, ATAs, mint tokens, check balances
-- 🔐 **Token-2022 Extensions**: Create mints with transfer hooks, transfer fees, permanent delegates, non-transferable tokens, and more
+- 🔐 **Token Extensions**: Create mints with transfer hooks, transfer fees, permanent delegates, non-transferable tokens, and more
 - 🪝 **Transfer Hook Support**: ExtraAccountMetaList setup and transfer helpers
 - 👛 **Wallet Management**: Create funded wallets in one call
 - 🔑 **PDA Utilities**: Type-safe seed handling with the `seeds!` macro
@@ -92,19 +92,19 @@ mint_tokens_to_account(&mut svm, &mint, &ata, 1_000_000_000, &authority)?;
 assert_token_balance(&svm, &ata, 1_000_000_000, "Should have 1B tokens");
 ```
 
-### Token-2022 Extensions
+### Token Extensions
 
 Create mints with extensions — transfer hooks, transfer fees, permanent delegates, non-transferable tokens, and more:
 
 ```rust
 use solana_kite::{
-    create_token_2022_mint, create_token_2022_account,
-    mint_tokens_to_account_2022, transfer_checked_token_2022,
+    create_token_extensions_mint, create_token_extensions_account,
+    mint_tokens_to_token_extensions_account, transfer_checked_token_extensions,
     MintExtension,
 };
 
 // Create a mint with transfer fee extension
-let mint = create_token_2022_mint(
+let mint = create_token_extensions_mint(
     &mut svm,
     &authority,
     6,
@@ -115,10 +115,10 @@ let mint = create_token_2022_mint(
 )?;
 
 // Create token accounts, mint, and transfer
-let sender_ata = create_token_2022_account(&mut svm, &sender.pubkey(), &mint, &payer)?;
-let receiver_ata = create_token_2022_account(&mut svm, &receiver.pubkey(), &mint, &payer)?;
-mint_tokens_to_account_2022(&mut svm, &mint, &sender_ata, 1_000_000, &authority)?;
-transfer_checked_token_2022(&mut svm, &sender_ata, &mint, &receiver_ata, &sender, 500_000, 6, &[])?;
+let sender_ata = create_token_extensions_account(&mut svm, &sender.pubkey(), &mint, &payer)?;
+let receiver_ata = create_token_extensions_account(&mut svm, &receiver.pubkey(), &mint, &payer)?;
+mint_tokens_to_token_extensions_account(&mut svm, &mint, &sender_ata, 1_000_000, &authority)?;
+transfer_checked_token_extensions(&mut svm, &sender_ata, &mint, &receiver_ata, &sender, 500_000, 6, &[])?;
 ```
 
 **Supported extensions:**
@@ -200,7 +200,7 @@ match some_operation() {
 ```bash
 cargo run --example basic_usage
 cargo run --example token_operations
-cargo run --example token_2022_operations
+cargo run --example token_extensions_operations
 ```
 
 ## Testing

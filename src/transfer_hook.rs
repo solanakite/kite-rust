@@ -1,14 +1,14 @@
-//! Transfer hook helpers for Token-2022.
+//! Transfer hook helpers for Token Extensions.
 //!
-//! When a Token-2022 mint has the TransferHook extension, every transfer
+//! When a Token Extensions mint has the TransferHook extension, every transfer
 //! invokes a program-defined hook. That hook program must store an
-//! `ExtraAccountMetaList` account that tells the Token-2022 runtime which
+//! `ExtraAccountMetaList` account that tells the Token Extensions runtime which
 //! additional accounts to pass into the hook.
 //!
 //! This module provides a helper to initialise that account.
 
 use crate::error::SolanaKiteError;
-use crate::token_2022::TOKEN_2022_PROGRAM_ID;
+use crate::token_extensions::TOKEN_EXTENSIONS_PROGRAM_ID;
 use litesvm::LiteSVM;
 use solana_instruction::account_meta::AccountMeta;
 use solana_instruction::Instruction;
@@ -22,7 +22,7 @@ use solana_transaction::Transaction;
 
 /// Describes an additional account that the transfer hook program requires.
 ///
-/// The Token-2022 runtime reads these from the `ExtraAccountMetaList` PDA
+/// The Token Extensions runtime reads these from the `ExtraAccountMetaList` PDA
 /// and appends them to the CPI into the hook program.
 #[derive(Debug, Clone)]
 pub struct ExtraAccountMeta {
@@ -72,7 +72,7 @@ pub fn get_extra_account_metas_address(mint: &Pubkey, hook_program_id: &Pubkey) 
 ///
 /// * `litesvm` - Mutable reference to the LiteSVM instance
 /// * `hook_program_id` - The transfer hook program ID
-/// * `mint` - The Token-2022 mint with the TransferHook extension
+/// * `mint` - The Token Extensions mint with the TransferHook extension
 /// * `authority` - The mint authority / payer keypair
 /// * `extra_metas` - Slice of extra account metas the hook needs
 ///
@@ -133,10 +133,10 @@ pub fn initialize_extra_account_meta_list(
     Ok(())
 }
 
-/// Builds the extra accounts needed for a Token-2022 transfer with a transfer hook.
+/// Builds the extra accounts needed for a Token Extensions transfer with a transfer hook.
 ///
 /// Returns the account metas that should be passed as `extra_accounts` to
-/// [`crate::token_2022::transfer_checked_token_2022`]. This includes the
+/// [`crate::token_extensions::transfer_checked_token_extensions`]. This includes the
 /// ExtraAccountMetaList PDA, the hook program, and any user-defined extra accounts.
 pub fn build_transfer_hook_extra_accounts(
     mint: &Pubkey,
@@ -162,8 +162,8 @@ pub fn build_transfer_hook_extra_accounts(
         extra_account_metas_address,
         false,
     ));
-    // Token-2022 also passes the Token-2022 program itself as the last account
-    accounts.push(AccountMeta::new_readonly(TOKEN_2022_PROGRAM_ID, false));
+    // Token Extensions also passes the Token Extensions program itself as the last account
+    accounts.push(AccountMeta::new_readonly(TOKEN_EXTENSIONS_PROGRAM_ID, false));
 
     accounts
 }

@@ -16,12 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Token-2022 module** (`token_2022`):
-  - `create_token_2022_mint` — create mints with any combination of 8 extension types
-  - `create_token_2022_account` — create ATAs for Token-2022 mints
-  - `mint_tokens_to_account_2022` — mint tokens via Token-2022
-  - `transfer_checked_token_2022` — TransferChecked with extra account support (for hooks)
-  - `get_token_2022_balance` / `assert_token_2022_balance` — balance helpers
+- **Token Extensions module** (`token_extensions`):
+  - `create_token_extensions_mint` — create mints with any combination of 8 extension types
+  - `create_token_extensions_account` — create ATAs for Token Extensions mints
+  - `mint_tokens_to_token_extensions_account` — mint tokens via Token Extensions
+  - `transfer_checked_token_extensions` — TransferChecked with extra account support (for hooks)
+  - `get_token_extensions_balance` / `assert_token_extensions_balance` — balance helpers
   - `MintExtension` enum: TransferHook, TransferFee, MintCloseAuthority, PermanentDelegate, NonTransferable, DefaultAccountState, InterestBearing, MetadataPointer
 - **Transfer hook module** (`transfer_hook`):
   - `ExtraAccountMeta` — describes additional accounts for transfer hooks
@@ -29,8 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `initialize_extra_account_meta_list` — initialise the PDA for a hook program
   - `build_transfer_hook_extra_accounts` — build extra accounts for transfers
 - **`deploy_program_bytes`** — deploy programs from `&[u8]` (for `include_bytes!` workflows)
-- **Token-2022 example** (`examples/token_2022_operations.rs`)
-- **11 new Token-2022 integration tests** covering all extension types
+- **Token Extensions example** (`examples/token_extensions_operations.rs`)
+- **11 new Token Extensions integration tests** covering all extension types
 
 ## [0.2.1] - 2025-10-09
 

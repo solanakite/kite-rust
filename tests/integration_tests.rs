@@ -164,14 +164,14 @@ fn test_multiple_token_mints() {
     );
 }
 
-// ─── Token-2022 Tests ────────────────────────────────────────────────────────
+// ─── Token Extensions Tests ────────────────────────────────────────────────────────
 
-mod token_2022_tests {
+mod token_extensions_tests {
     use litesvm::LiteSVM;
     use solana_kite::create_wallet;
-    use solana_kite::token_2022::{
-        assert_token_2022_balance, create_token_2022_account, create_token_2022_mint,
-        get_token_2022_balance, mint_tokens_to_account_2022, transfer_checked_token_2022,
+    use solana_kite::token_extensions::{
+        assert_token_extensions_balance, create_token_extensions_account, create_token_extensions_mint,
+        get_token_extensions_balance, mint_tokens_to_token_extensions_account, transfer_checked_token_extensions,
         MintExtension,
     };
     use solana_signer::Signer;
@@ -181,7 +181,7 @@ mod token_2022_tests {
         let mut litesvm = LiteSVM::new();
         let authority = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
 
-        let mint = create_token_2022_mint(
+        let mint = create_token_extensions_mint(
             &mut litesvm,
             &authority,
             6,
@@ -191,11 +191,11 @@ mod token_2022_tests {
         )
         .unwrap();
 
-        // Verify the mint account exists and is owned by Token-2022
+        // Verify the mint account exists and is owned by Token Extensions
         let account = litesvm.get_account(&mint).unwrap();
         assert_eq!(
             account.owner,
-            solana_kite::token_2022::TOKEN_2022_PROGRAM_ID
+            solana_kite::token_extensions::TOKEN_EXTENSIONS_PROGRAM_ID
         );
     }
 
@@ -204,7 +204,7 @@ mod token_2022_tests {
         let mut litesvm = LiteSVM::new();
         let authority = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
 
-        let mint = create_token_2022_mint(
+        let mint = create_token_extensions_mint(
             &mut litesvm,
             &authority,
             9,
@@ -217,7 +217,7 @@ mod token_2022_tests {
         let account = litesvm.get_account(&mint).unwrap();
         assert_eq!(
             account.owner,
-            solana_kite::token_2022::TOKEN_2022_PROGRAM_ID
+            solana_kite::token_extensions::TOKEN_EXTENSIONS_PROGRAM_ID
         );
     }
 
@@ -226,7 +226,7 @@ mod token_2022_tests {
         let mut litesvm = LiteSVM::new();
         let authority = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
 
-        let mint = create_token_2022_mint(
+        let mint = create_token_extensions_mint(
             &mut litesvm,
             &authority,
             0,
@@ -237,7 +237,7 @@ mod token_2022_tests {
         let account = litesvm.get_account(&mint).unwrap();
         assert_eq!(
             account.owner,
-            solana_kite::token_2022::TOKEN_2022_PROGRAM_ID
+            solana_kite::token_extensions::TOKEN_EXTENSIONS_PROGRAM_ID
         );
     }
 
@@ -246,7 +246,7 @@ mod token_2022_tests {
         let mut litesvm = LiteSVM::new();
         let authority = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
 
-        let mint = create_token_2022_mint(
+        let mint = create_token_extensions_mint(
             &mut litesvm,
             &authority,
             6,
@@ -264,18 +264,18 @@ mod token_2022_tests {
         let account = litesvm.get_account(&mint).unwrap();
         assert_eq!(
             account.owner,
-            solana_kite::token_2022::TOKEN_2022_PROGRAM_ID
+            solana_kite::token_extensions::TOKEN_EXTENSIONS_PROGRAM_ID
         );
     }
 
     #[test]
-    fn test_token_2022_mint_and_transfer() {
+    fn test_token_extensions_mint_and_transfer() {
         let mut litesvm = LiteSVM::new();
         let authority = create_wallet(&mut litesvm, 2_000_000_000).unwrap();
         let user = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
 
         // Create mint with close authority extension
-        let mint = create_token_2022_mint(
+        let mint = create_token_extensions_mint(
             &mut litesvm,
             &authority,
             6,
@@ -287,14 +287,14 @@ mod token_2022_tests {
 
         // Create token accounts
         let authority_ata =
-            create_token_2022_account(&mut litesvm, &authority.pubkey(), &mint, &authority)
+            create_token_extensions_account(&mut litesvm, &authority.pubkey(), &mint, &authority)
                 .unwrap();
         let user_ata =
-            create_token_2022_account(&mut litesvm, &user.pubkey(), &mint, &user).unwrap();
+            create_token_extensions_account(&mut litesvm, &user.pubkey(), &mint, &user).unwrap();
 
         // Mint tokens to authority's account
         let mint_amount = 1_000_000; // 1 token (6 decimals)
-        mint_tokens_to_account_2022(
+        mint_tokens_to_token_extensions_account(
             &mut litesvm,
             &mint,
             &authority_ata,
@@ -303,7 +303,7 @@ mod token_2022_tests {
         )
         .unwrap();
 
-        assert_token_2022_balance(
+        assert_token_extensions_balance(
             &litesvm,
             &authority_ata,
             mint_amount,
@@ -312,7 +312,7 @@ mod token_2022_tests {
 
         // Transfer half to user
         let transfer_amount = 500_000;
-        transfer_checked_token_2022(
+        transfer_checked_token_extensions(
             &mut litesvm,
             &authority_ata,
             &mint,
@@ -324,13 +324,13 @@ mod token_2022_tests {
         )
         .unwrap();
 
-        assert_token_2022_balance(
+        assert_token_extensions_balance(
             &litesvm,
             &authority_ata,
             mint_amount - transfer_amount,
             "Authority balance after transfer",
         );
-        assert_token_2022_balance(
+        assert_token_extensions_balance(
             &litesvm,
             &user_ata,
             transfer_amount,
@@ -339,25 +339,25 @@ mod token_2022_tests {
     }
 
     #[test]
-    fn test_token_2022_balance_helpers() {
+    fn test_token_extensions_balance_helpers() {
         let mut litesvm = LiteSVM::new();
         let authority = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
 
         let mint =
-            create_token_2022_mint(&mut litesvm, &authority, 6, &[MintExtension::NonTransferable])
+            create_token_extensions_mint(&mut litesvm, &authority, 6, &[MintExtension::NonTransferable])
                 .unwrap();
 
         let ata =
-            create_token_2022_account(&mut litesvm, &authority.pubkey(), &mint, &authority)
+            create_token_extensions_account(&mut litesvm, &authority.pubkey(), &mint, &authority)
                 .unwrap();
 
         // Initial balance should be zero
-        let balance = get_token_2022_balance(&litesvm, &ata).unwrap();
+        let balance = get_token_extensions_balance(&litesvm, &ata).unwrap();
         assert_eq!(balance, 0);
 
         // Mint and check
-        mint_tokens_to_account_2022(&mut litesvm, &mint, &ata, 42_000, &authority).unwrap();
-        assert_token_2022_balance(&litesvm, &ata, 42_000, "Should have 42000 tokens");
+        mint_tokens_to_token_extensions_account(&mut litesvm, &mint, &ata, 42_000, &authority).unwrap();
+        assert_token_extensions_balance(&litesvm, &ata, 42_000, "Should have 42000 tokens");
     }
 
     #[test]
@@ -366,7 +366,7 @@ mod token_2022_tests {
         let authority = create_wallet(&mut litesvm, 2_000_000_000).unwrap();
 
         // 1% fee, max 1000 base units
-        let mint = create_token_2022_mint(
+        let mint = create_token_extensions_mint(
             &mut litesvm,
             &authority,
             6,
@@ -380,7 +380,7 @@ mod token_2022_tests {
         let account = litesvm.get_account(&mint).unwrap();
         assert_eq!(
             account.owner,
-            solana_kite::token_2022::TOKEN_2022_PROGRAM_ID
+            solana_kite::token_extensions::TOKEN_EXTENSIONS_PROGRAM_ID
         );
     }
 
@@ -390,7 +390,7 @@ mod token_2022_tests {
         let authority = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
         let metadata_address = solana_pubkey::Pubkey::new_unique();
 
-        let mint = create_token_2022_mint(
+        let mint = create_token_extensions_mint(
             &mut litesvm,
             &authority,
             6,
@@ -404,7 +404,7 @@ mod token_2022_tests {
         let account = litesvm.get_account(&mint).unwrap();
         assert_eq!(
             account.owner,
-            solana_kite::token_2022::TOKEN_2022_PROGRAM_ID
+            solana_kite::token_extensions::TOKEN_EXTENSIONS_PROGRAM_ID
         );
     }
 
@@ -414,7 +414,7 @@ mod token_2022_tests {
         let authority = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
 
         // 5% interest rate (500 basis points)
-        let mint = create_token_2022_mint(
+        let mint = create_token_extensions_mint(
             &mut litesvm,
             &authority,
             6,
@@ -428,7 +428,7 @@ mod token_2022_tests {
         let account = litesvm.get_account(&mint).unwrap();
         assert_eq!(
             account.owner,
-            solana_kite::token_2022::TOKEN_2022_PROGRAM_ID
+            solana_kite::token_extensions::TOKEN_EXTENSIONS_PROGRAM_ID
         );
     }
 
@@ -439,8 +439,8 @@ mod token_2022_tests {
 
         // Default state: Initialized (1)
         // Note: Frozen (2) requires a freeze authority on the mint,
-        // which create_token_2022_mint doesn't set by default.
-        let mint = create_token_2022_mint(
+        // which create_token_extensions_mint doesn't set by default.
+        let mint = create_token_extensions_mint(
             &mut litesvm,
             &authority,
             6,
@@ -451,7 +451,7 @@ mod token_2022_tests {
         let account = litesvm.get_account(&mint).unwrap();
         assert_eq!(
             account.owner,
-            solana_kite::token_2022::TOKEN_2022_PROGRAM_ID
+            solana_kite::token_extensions::TOKEN_EXTENSIONS_PROGRAM_ID
         );
     }
 
@@ -461,7 +461,7 @@ mod token_2022_tests {
         let authority = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
         let hook_program = solana_pubkey::Pubkey::new_unique();
 
-        let mint = create_token_2022_mint(
+        let mint = create_token_extensions_mint(
             &mut litesvm,
             &authority,
             6,
@@ -474,7 +474,7 @@ mod token_2022_tests {
         let account = litesvm.get_account(&mint).unwrap();
         assert_eq!(
             account.owner,
-            solana_kite::token_2022::TOKEN_2022_PROGRAM_ID
+            solana_kite::token_extensions::TOKEN_EXTENSIONS_PROGRAM_ID
         );
     }
 }

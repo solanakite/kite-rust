@@ -1,6 +1,6 @@
 [package]
 name = "solana-kite"
-# Breaking change: Solana 3.x / Anchor 1.0 support, Token-2022 module, removed deprecated TestError
+# Breaking change: Solana 3.x / Anchor 1.0 support, Token Extensions module, removed deprecated TestError
 version = "0.3.0"
 edition = "2021"
 authors = ["Mike MacCana <mike.maccana@gmail.com>"]
@@ -51,8 +51,8 @@ name = "token_operations"
 path = "examples/token_operations.rs"
 
 [[example]]
-name = "token_2022_operations"
-path = "examples/token_2022_operations.rs"
+name = "token_extensions_operations"
+path = "examples/token_extensions_operations.rs"
 
 [package.metadata.docs.rs]
 all-features = true
