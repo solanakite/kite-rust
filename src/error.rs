@@ -53,37 +53,3 @@ impl From<std::io::Error> for SolanaKiteError {
         SolanaKiteError::IoError(err)
     }
 }
-
-/// Legacy error type for backward compatibility.
-/// 
-/// This is kept for backward compatibility with existing code.
-/// New code should use [`SolanaKiteError`] instead.
-#[deprecated(since = "0.1.0", note = "Use SolanaKiteError instead")]
-#[derive(Debug)]
-pub enum TestError {
-    /// Transaction failed with an error message.
-    TransactionFailed(String),
-}
-
-#[allow(deprecated)]
-impl fmt::Display for TestError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            TestError::TransactionFailed(msg) => {
-                write!(f, "Transaction failed: {}", msg)
-            }
-        }
-    }
-}
-
-#[allow(deprecated)]
-impl std::error::Error for TestError {}
-
-#[allow(deprecated)]
-impl From<TestError> for SolanaKiteError {
-    fn from(err: TestError) -> Self {
-        match err {
-            TestError::TransactionFailed(msg) => SolanaKiteError::TransactionFailed(msg),
-        }
-    }
-}

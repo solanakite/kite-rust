@@ -6,9 +6,10 @@
 //!
 //! ## Features
 //!
-//! - **Program Deployment**: Deploy programs to a test environment
+//! - **Program Deployment**: Deploy programs to a test environment (from files or bytes)
 //! - **Transaction Utilities**: Send transactions from instructions with proper signing
 //! - **Token Operations**: Create mints, associated token accounts, and mint tokens
+//! - **Token-2022 Support**: Create Token-2022 mints with extensions, transfer hooks, and more
 //! - **Account Management**: Create wallets, check balances, and manage account state
 //! - **PDA Utilities**: Generate Program Derived Addresses with type-safe seed handling
 //!
@@ -24,25 +25,27 @@
 //! ```
 
 pub mod error;
+pub mod pda;
 pub mod program;
 pub mod token;
+pub mod token_2022;
 pub mod transaction;
+pub mod transfer_hook;
 pub mod wallet;
-pub mod pda;
 
 pub use error::SolanaKiteError;
-pub use program::deploy_program;
+pub use pda::{get_pda_and_bump, Seed};
+pub use program::{deploy_program, deploy_program_bytes};
 pub use token::{
-    create_associated_token_account, create_token_mint, get_token_account_balance,
-    assert_token_balance, mint_tokens_to_account,
+    assert_token_balance, create_associated_token_account, create_token_mint,
+    get_token_account_balance, mint_tokens_to_account,
 };
 pub use transaction::send_transaction_from_instructions;
 pub use wallet::{create_wallet, create_wallets};
-pub use pda::{get_pda_and_bump, Seed};
 
 // The seeds! macro is automatically available at the crate root due to #[macro_export]
 
-/// Verifies that an account is closed (either doesn't exist or has empty data)
+/// Verifies that an account is closed (either doesn't exist or has empty data).
 ///
 /// # Arguments
 ///
