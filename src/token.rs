@@ -1,6 +1,8 @@
 //! Token operations for SPL tokens on Solana.
 
-use crate::constants::{SPL_TOKEN_MINT_SIZE, TOKEN_ACCOUNT_AMOUNT_END, TOKEN_ACCOUNT_AMOUNT_OFFSET};
+use crate::constants::{
+    SPL_TOKEN_MINT_SIZE, TOKEN_ACCOUNT_AMOUNT_END, TOKEN_ACCOUNT_AMOUNT_OFFSET,
+};
 use crate::error::SolanaKiteError;
 use crate::transaction::send_transaction_from_instructions;
 use litesvm::LiteSVM;
@@ -73,7 +75,9 @@ pub fn create_token_mint(
                 rent_epoch: 0,
             },
         )
-        .map_err(|e| SolanaKiteError::TokenOperationFailed(format!("Failed to create mint account: {e}")))?;
+        .map_err(|e| {
+            SolanaKiteError::TokenOperationFailed(format!("Failed to create mint account: {e}"))
+        })?;
 
     let initialize_mint_instruction = spl_token::instruction::initialize_mint(
         &spl_token::ID,
@@ -82,7 +86,11 @@ pub fn create_token_mint(
         None,
         decimals,
     )
-    .map_err(|e| SolanaKiteError::TokenOperationFailed(format!("Failed to create initialize mint instruction: {e}")))?;
+    .map_err(|e| {
+        SolanaKiteError::TokenOperationFailed(format!(
+            "Failed to create initialize mint instruction: {e}"
+        ))
+    })?;
 
     send_transaction_from_instructions(
         litesvm,
@@ -150,12 +158,7 @@ pub fn create_associated_token_account(
 
     let instruction = create_ata_instruction(&payer.pubkey(), owner, mint, &spl_token::ID);
 
-    send_transaction_from_instructions(
-        litesvm,
-        vec![instruction],
-        &[payer],
-        &payer.pubkey(),
-    )?;
+    send_transaction_from_instructions(litesvm, vec![instruction], &[payer], &payer.pubkey())?;
 
     Ok(associated_token_account)
 }
@@ -213,7 +216,9 @@ pub fn mint_tokens_to_token_account(
         &[],
         amount,
     )
-    .map_err(|e| SolanaKiteError::TokenOperationFailed(format!("Failed to create mint_to instruction: {e}")))?;
+    .map_err(|e| {
+        SolanaKiteError::TokenOperationFailed(format!("Failed to create mint_to instruction: {e}"))
+    })?;
 
     send_transaction_from_instructions(
         litesvm,
@@ -267,9 +272,9 @@ pub fn get_token_account_balance(
     litesvm: &LiteSVM,
     token_account: &Pubkey,
 ) -> Result<u64, SolanaKiteError> {
-    let account = litesvm
-        .get_account(token_account)
-        .ok_or_else(|| SolanaKiteError::TokenOperationFailed("Token account not found".to_string()))?;
+    let account = litesvm.get_account(token_account).ok_or_else(|| {
+        SolanaKiteError::TokenOperationFailed("Token account not found".to_string())
+    })?;
 
     let data = &account.data;
     if data.len() < TOKEN_ACCOUNT_AMOUNT_END {
@@ -281,7 +286,9 @@ pub fn get_token_account_balance(
     let amount = u64::from_le_bytes(
         data[TOKEN_ACCOUNT_AMOUNT_OFFSET..TOKEN_ACCOUNT_AMOUNT_END]
             .try_into()
-            .map_err(|_| SolanaKiteError::TokenOperationFailed("Failed to parse token amount".to_string()))?
+            .map_err(|_| {
+                SolanaKiteError::TokenOperationFailed("Failed to parse token amount".to_string())
+            })?,
     );
 
     Ok(amount)

@@ -1,12 +1,10 @@
 //! Basic usage example for Solana Kite
-//! 
+//!
 //! This example demonstrates the core functionality of the solana_kite library,
 //! including wallet creation, program deployment, and transaction sending.
 
 use litesvm::LiteSVM;
-use solana_kite::{
-    create_wallet, send_transaction_from_instructions, SolanaKiteError,
-};
+use solana_kite::{create_wallet, send_transaction_from_instructions, SolanaKiteError};
 use solana_pubkey::Pubkey;
 use solana_signer::Signer;
 
@@ -38,10 +36,10 @@ fn main() -> Result<(), SolanaKiteError> {
 
     // Example of sending a transaction (empty instruction list for demo)
     let instructions = vec![]; // In practice, you'd have actual instructions here
-    
+
     println!("📝 Transaction sending example:");
     println!("   send_transaction_from_instructions(&mut litesvm, instructions, &[&wallet], &wallet.pubkey())?;");
-    
+
     // Actually send the empty transaction (this will succeed)
     send_transaction_from_instructions(&mut litesvm, instructions, &[&wallet], &wallet.pubkey())?;
     println!("✅ Sent transaction successfully");

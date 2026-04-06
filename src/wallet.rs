@@ -41,7 +41,9 @@ pub fn create_wallet(
     let wallet = Keypair::new();
     litesvm
         .airdrop(&wallet.pubkey(), airdrop_amount)
-        .map_err(|e| SolanaKiteError::AccountOperationFailed(format!("Failed to airdrop to wallet: {e:?}")))?;
+        .map_err(|e| {
+            SolanaKiteError::AccountOperationFailed(format!("Failed to airdrop to wallet: {e:?}"))
+        })?;
     Ok(wallet)
 }
 
@@ -106,7 +108,10 @@ pub fn create_wallets(
 /// ```
 #[must_use]
 pub fn get_sol_balance(litesvm: &LiteSVM, address: &Pubkey) -> u64 {
-    litesvm.get_account(address).map(|a| a.lamports).unwrap_or(0)
+    litesvm
+        .get_account(address)
+        .map(|a| a.lamports)
+        .unwrap_or(0)
 }
 
 /// Asserts that an account has the expected SOL balance in lamports.
@@ -128,7 +133,12 @@ pub fn get_sol_balance(litesvm: &LiteSVM, address: &Pubkey) -> u64 {
 /// let wallet = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
 /// assert_sol_balance(&litesvm, &wallet.pubkey(), 1_000_000_000, "Should have 1 SOL");
 /// ```
-pub fn assert_sol_balance(litesvm: &LiteSVM, address: &Pubkey, expected_lamports: u64, message: &str) {
+pub fn assert_sol_balance(
+    litesvm: &LiteSVM,
+    address: &Pubkey,
+    expected_lamports: u64,
+    message: &str,
+) {
     let actual = get_sol_balance(litesvm, address);
     assert_eq!(actual, expected_lamports, "{}", message);
 }
@@ -158,7 +168,9 @@ pub fn assert_sol_balance(litesvm: &LiteSVM, address: &Pubkey, expected_lamports
 /// ```
 pub fn check_account_is_closed(litesvm: &LiteSVM, account: &Pubkey, message: &str) {
     assert!(
-        litesvm.get_account(account).map_or(true, |a| a.data.is_empty()),
+        litesvm
+            .get_account(account)
+            .map_or(true, |a| a.data.is_empty()),
         "{}",
         message
     );

@@ -187,7 +187,7 @@ impl MintExtension {
                 data.push(INSTRUCTION_TRANSFER_HOOK);
                 data.push(0); // Initialize sub-instruction
                 data.extend_from_slice(&mint_authority.to_bytes()); // authority
-                data.extend_from_slice(&program_id.to_bytes());     // program_id
+                data.extend_from_slice(&program_id.to_bytes()); // program_id
                 Instruction {
                     program_id: TOKEN_EXTENSIONS_PROGRAM_ID,
                     accounts: vec![AccountMeta::new(*mint, false)],
@@ -205,7 +205,7 @@ impl MintExtension {
                 let mut data = Vec::with_capacity(2 + 1 + 32 + 1 + 32 + 2 + 8);
                 data.push(INSTRUCTION_TRANSFER_FEE);
                 data.push(0); // InitializeTransferFeeConfig sub-instruction
-                // config_authority: Some(mint_authority)
+                              // config_authority: Some(mint_authority)
                 data.push(1);
                 data.extend_from_slice(&mint_authority.to_bytes());
                 // withdraw_authority: Some(mint_authority)
@@ -454,22 +454,17 @@ pub fn create_token_extensions_account(
     let instruction = Instruction {
         program_id: ASSOCIATED_TOKEN_PROGRAM_ID,
         accounts: vec![
-            AccountMeta::new(payer.pubkey(), true),                  // funding account (signer)
-            AccountMeta::new(associated_token_account, false),       // ATA to create
-            AccountMeta::new_readonly(*owner, false),                // wallet address
-            AccountMeta::new_readonly(*mint, false),                 // token mint
-            AccountMeta::new_readonly(SYSTEM_PROGRAM_ID, false),     // system program
+            AccountMeta::new(payer.pubkey(), true), // funding account (signer)
+            AccountMeta::new(associated_token_account, false), // ATA to create
+            AccountMeta::new_readonly(*owner, false), // wallet address
+            AccountMeta::new_readonly(*mint, false), // token mint
+            AccountMeta::new_readonly(SYSTEM_PROGRAM_ID, false), // system program
             AccountMeta::new_readonly(TOKEN_EXTENSIONS_PROGRAM_ID, false), // token program
         ],
         data: Vec::new(), // CreateAssociatedTokenAccount has no data
     };
 
-    send_transaction_from_instructions(
-        litesvm,
-        vec![instruction],
-        &[payer],
-        &payer.pubkey(),
-    )?;
+    send_transaction_from_instructions(litesvm, vec![instruction], &[payer], &payer.pubkey())?;
 
     Ok(associated_token_account)
 }
@@ -645,4 +640,3 @@ pub fn get_token_extensions_account_address(owner: &Pubkey, mint: &Pubkey) -> Pu
         &TOKEN_EXTENSIONS_PROGRAM_ID,
     )
 }
-

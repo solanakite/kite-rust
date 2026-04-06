@@ -4,12 +4,12 @@
 //! minting tokens, and transferring between accounts.
 
 use litesvm::LiteSVM;
+use solana_kite::assert_token_account_balance;
 use solana_kite::create_wallet;
 use solana_kite::token_extensions::{
     create_token_extensions_account, create_token_extensions_mint,
     mint_tokens_to_token_extensions_account, transfer_checked_token_extensions, MintExtension,
 };
-use solana_kite::assert_token_account_balance;
 use solana_signer::Signer;
 
 fn main() {
@@ -39,7 +39,8 @@ fn main() {
 
     // Create associated token accounts
     let authority_ata =
-        create_token_extensions_account(&mut litesvm, &authority.pubkey(), &mint, &authority).unwrap();
+        create_token_extensions_account(&mut litesvm, &authority.pubkey(), &mint, &authority)
+            .unwrap();
     let user_ata =
         create_token_extensions_account(&mut litesvm, &user.pubkey(), &mint, &user).unwrap();
     println!("Authority ATA: {}", authority_ata);
@@ -47,8 +48,14 @@ fn main() {
 
     // Mint 1,000,000 tokens (with 6 decimals = 1.0 tokens)
     let mint_amount = 1_000_000;
-    mint_tokens_to_token_extensions_account(&mut litesvm, &mint, &authority_ata, mint_amount, &authority)
-        .unwrap();
+    mint_tokens_to_token_extensions_account(
+        &mut litesvm,
+        &mint,
+        &authority_ata,
+        mint_amount,
+        &authority,
+    )
+    .unwrap();
     println!("Minted {} tokens to authority", mint_amount);
 
     // Transfer 250,000 tokens to user

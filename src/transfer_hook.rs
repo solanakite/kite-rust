@@ -63,10 +63,8 @@ impl HookAccount {
 /// the deriving program.
 #[must_use]
 pub fn get_hook_accounts_address(mint: &Pubkey, hook_program_id: &Pubkey) -> Pubkey {
-    let (address, _bump) = Pubkey::find_program_address(
-        &[b"extra-account-metas", mint.as_ref()],
-        hook_program_id,
-    );
+    let (address, _bump) =
+        Pubkey::find_program_address(&[b"extra-account-metas", mint.as_ref()], hook_program_id);
     address
 }
 
@@ -117,9 +115,8 @@ pub fn initialize_hook_accounts(
     let hook_accounts_address = get_hook_accounts_address(mint, hook_program_id);
 
     // Serialise as: discriminator(8) + u32 entry count + N * EXTRA_ACCOUNT_META_SERIALIZED_SIZE
-    let mut data = Vec::with_capacity(
-        8 + 4 + hook_accounts.len() * EXTRA_ACCOUNT_META_SERIALIZED_SIZE,
-    );
+    let mut data =
+        Vec::with_capacity(8 + 4 + hook_accounts.len() * EXTRA_ACCOUNT_META_SERIALIZED_SIZE);
     data.extend_from_slice(&INITIALIZE_EXTRA_ACCOUNT_META_LIST_DISCRIMINATOR);
     data.extend_from_slice(&(hook_accounts.len() as u32).to_le_bytes());
     for account in hook_accounts {
@@ -129,10 +126,10 @@ pub fn initialize_hook_accounts(
     let instruction = Instruction {
         program_id: *hook_program_id,
         accounts: vec![
-            AccountMeta::new(hook_accounts_address, false),      // ExtraAccountMetaList PDA
-            AccountMeta::new_readonly(*mint, false),              // mint
-            AccountMeta::new(authority.pubkey(), true),           // authority / payer
-            AccountMeta::new_readonly(SYSTEM_PROGRAM_ID, false),  // system program
+            AccountMeta::new(hook_accounts_address, false), // ExtraAccountMetaList PDA
+            AccountMeta::new_readonly(*mint, false),        // mint
+            AccountMeta::new(authority.pubkey(), true),     // authority / payer
+            AccountMeta::new_readonly(SYSTEM_PROGRAM_ID, false), // system program
         ],
         data,
     };
@@ -180,7 +177,10 @@ pub fn build_hook_accounts(
     accounts.push(AccountMeta::new_readonly(*hook_program_id, false));
     accounts.push(AccountMeta::new_readonly(hook_accounts_address, false));
     // Token Extensions also passes the Token Extensions program itself as the last account
-    accounts.push(AccountMeta::new_readonly(TOKEN_EXTENSIONS_PROGRAM_ID, false));
+    accounts.push(AccountMeta::new_readonly(
+        TOKEN_EXTENSIONS_PROGRAM_ID,
+        false,
+    ));
 
     accounts
 }

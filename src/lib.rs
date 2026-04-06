@@ -50,4 +50,6 @@ pub use transaction::send_transaction_from_instructions;
 pub use transfer_hook::{
     build_hook_accounts, get_hook_accounts_address, initialize_hook_accounts, HookAccount,
 };
-pub use wallet::{assert_sol_balance, check_account_is_closed, create_wallet, create_wallets, get_sol_balance};
+pub use wallet::{
+    assert_sol_balance, check_account_is_closed, create_wallet, create_wallets, get_sol_balance,
+};

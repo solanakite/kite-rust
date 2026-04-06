@@ -91,10 +91,7 @@ pub fn deploy_program_bytes(
             },
         )
         .map_err(|e| {
-            SolanaKiteError::ProgramDeploymentFailed(format!(
-                "Failed to deploy program: {}",
-                e
-            ))
+            SolanaKiteError::ProgramDeploymentFailed(format!("Failed to deploy program: {}", e))
         })?;
 
     Ok(())

@@ -5,9 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2026-04-02
 
-Nothing yet.
+### Breaking Changes
+
+- **Solana 3.x**: All Solana dependencies bumped from 2.x to 3.0 (matching Anchor 1.0.0-rc.5)
+- **LiteSVM 0.11**: Bumped from 0.7 to 0.11.0
+- **SPL crates**: spl-token 8→9, spl-associated-token-account 7→8
+- **Removed deprecated `TestError`**: Use `SolanaKiteError` instead (deprecated since 0.1.0)
+- **Renamed functions** for consistency — "token account" and "token extensions account" are now used consistently:
+  - `mint_tokens_to_account` → `mint_tokens_to_token_account`
+  - `assert_token_balance` → `assert_token_account_balance`
+- **Unified token balance helpers**: `get_token_account_balance` and `assert_token_account_balance` work for both Classic Token and Token Extensions accounts — no separate helpers needed (the base account layout is identical)
+- **New error variant** `SolanaKiteError::HookOperationFailed` for transfer hook failures (previously `TokenOperationFailed`)
+
+### Added
+
+- **Token Extensions module** (`token_extensions`):
+  - `create_token_extensions_mint(litesvm, mint_authority, decimals, mint, extensions)` — create mints with any combination of 8 extension types; `mint` is an optional custom address (pass `None` to generate one)
+  - `create_token_extensions_account` — create ATAs for Token Extensions mints
+  - `mint_tokens_to_token_extensions_account` — mint tokens via Token Extensions
+  - `transfer_checked_token_extensions` — TransferChecked with hook account support
+  - `get_token_extensions_account_address` — derive a Token Extensions ATA address without creating it
+  - `MintExtension` enum: TransferHook, TransferFee, MintCloseAuthority, PermanentDelegate, NonTransferable, DefaultAccountState, InterestBearing, MetadataPointer
+  - `TokenAccountState` enum: Frozen, Initialized, Uninitialized (used with `DefaultAccountState`)
+- **Transfer hook module** (`transfer_hook`):
+  - `HookAccount` — describes an account a hook program requires on every transfer
+  - `get_hook_accounts_address` — derive the ExtraAccountMetaList PDA address
+  - `initialize_hook_accounts` — initialise the hook program's account list PDA
+  - `build_hook_accounts` — build the accounts to pass into a hook-aware transfer
+- **`get_token_account_address`** — derive a Classic Token Program ATA address without creating it (mirrors `get_token_extensions_account_address`)
+- **`deploy_program_bytes`** — deploy programs from `&[u8]` (for `include_bytes!` workflows)
+- **`get_sol_balance` / `assert_sol_balance`** — check SOL balances in lamports (parallel to the token balance helpers)
+- **Token Extensions example** (`examples/token_extensions_operations.rs`)
+- **Transfer hook example** (`examples/transfer_hook_operations.rs`) — end-to-end walkthrough of mint creation, ExtraAccountMetaList setup, and hook-aware `TransferChecked`
+- **11 new Token Extensions integration tests** covering all extension types
 
 ## [0.2.1] - 2025-10-09
 
@@ -67,7 +99,9 @@ Nothing yet.
 - Integration test suite
 - Support for LiteSVM test environment
 - Type-safe error handling
-- Backward compatibility with legacy `TestError` type
+- `TestError` type alias for backward compatibility (deprecated — use `SolanaKiteError`)
 
-[Unreleased]: https://github.com/solanakite/kite-rust/compare/v0.1.0...HEAD
+[0.3.0]: https://github.com/solanakite/kite-rust/compare/v0.2.1...v0.3.0
+[0.2.1]: https://github.com/solanakite/kite-rust/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/solanakite/kite-rust/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/solanakite/kite-rust/releases/tag/v0.1.0

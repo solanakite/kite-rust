@@ -11,10 +11,9 @@
 
 use litesvm::LiteSVM;
 use solana_kite::{
-    build_hook_accounts, create_token_extensions_account,
-    create_token_extensions_mint, create_wallet, get_hook_accounts_address,
-    mint_tokens_to_token_extensions_account, transfer_checked_token_extensions, HookAccount,
-    MintExtension,
+    build_hook_accounts, create_token_extensions_account, create_token_extensions_mint,
+    create_wallet, get_hook_accounts_address, mint_tokens_to_token_extensions_account,
+    transfer_checked_token_extensions, HookAccount, MintExtension,
 };
 use solana_signer::Signer;
 
@@ -75,10 +74,17 @@ fn main() {
     let sender_ata =
         create_token_extensions_account(&mut litesvm, &sender.pubkey(), &mint, &authority).unwrap();
     let receiver_ata =
-        create_token_extensions_account(&mut litesvm, &receiver.pubkey(), &mint, &authority).unwrap();
+        create_token_extensions_account(&mut litesvm, &receiver.pubkey(), &mint, &authority)
+            .unwrap();
 
-    mint_tokens_to_token_extensions_account(&mut litesvm, &mint, &sender_ata, 1_000_000, &authority)
-        .unwrap();
+    mint_tokens_to_token_extensions_account(
+        &mut litesvm,
+        &mint,
+        &sender_ata,
+        1_000_000,
+        &authority,
+    )
+    .unwrap();
     println!("Minted 1,000,000 tokens to sender");
 
     // 5. Build the accounts to pass into the transfer, then transfer.

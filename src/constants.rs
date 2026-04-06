@@ -15,5 +15,4 @@ pub const TOKEN_ACCOUNT_AMOUNT_OFFSET: usize = 64;
 pub const TOKEN_ACCOUNT_AMOUNT_END: usize = 72;
 
 /// The System program ID.
-pub const SYSTEM_PROGRAM_ID: Pubkey =
-    solana_pubkey::pubkey!("11111111111111111111111111111111");
+pub const SYSTEM_PROGRAM_ID: Pubkey = solana_pubkey::pubkey!("11111111111111111111111111111111");
