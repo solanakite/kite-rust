@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.0] - 2026-04-02
+## [0.3.0] - 2026-04-06
 
 ### Breaking Changes
 
@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `assert_token_balance` → `assert_token_account_balance`
 - **Unified token balance helpers**: `get_token_account_balance` and `assert_token_account_balance` work for both Classic Token and Token Extensions accounts — no separate helpers needed (the base account layout is identical)
 - **New error variant** `SolanaKiteError::HookOperationFailed` for transfer hook failures (previously `TokenOperationFailed`)
+
+### Changed
+
+- Updated `keccak` transitive dependency from 0.1.5 (yanked) to 0.1.6, which fixes undefined behaviour in the ARMv8 inline assembly backend
 
 ### Added
 
