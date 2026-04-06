@@ -22,7 +22,7 @@ use spl_token::instruction::mint_to;
 ///
 /// * `litesvm` - Mutable reference to the LiteSVM instance
 /// * `mint_authority` - Keypair that will have authority to mint tokens
-/// * `decimals` - Number of decimal places for the token (0-9)
+/// * `decimals` - Number of decimal places for the token (SPL Token enforces a maximum of 9)
 /// * `mint` - Optional custom public key for the mint. If None, a unique address will be generated
 ///
 /// # Returns

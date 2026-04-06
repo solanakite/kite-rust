@@ -187,7 +187,7 @@ deploy_program_bytes(&mut svm, &program_id, bytes)?;
 ### PDAs
 
 ```rust
-use solana_kite::{get_pda_and_bump, seeds, Seed};
+use solana_kite::{get_pda_and_bump, Seed};
 
 let (pda, bump) = get_pda_and_bump(
     &seeds!["user-account", user_address, 42u64],

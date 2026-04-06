@@ -15,7 +15,7 @@ categories = [
     "api-bindings",
     "cryptography::cryptocurrencies",
 ]
-exclude = ["target/", "test-ledger/", ".DS_Store"]
+exclude = ["target/", "test-ledger/", ".DS_Store", ".claude/"]
 
 [dependencies]
 litesvm = "0.11.0"

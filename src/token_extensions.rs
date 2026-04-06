@@ -322,6 +322,12 @@ fn calculate_mint_size(extensions: &[MintExtension]) -> usize {
 ///
 /// Returns an error if the mint account cannot be created or the initialization transaction fails.
 ///
+/// # Note
+///
+/// This function does not set a freeze authority. Using
+/// `MintExtension::DefaultAccountState { initial_state: TokenAccountState::Frozen }` will cause
+/// transfers to fail at runtime because there is no freeze authority to thaw accounts.
+///
 /// # Example
 ///
 /// ```rust
@@ -577,6 +583,7 @@ pub fn mint_tokens_to_token_extensions_account(
 /// # Ok(())
 /// # }
 /// ```
+#[allow(clippy::too_many_arguments)] // All parameters map directly to TransferChecked instruction fields
 pub fn transfer_checked_token_extensions(
     litesvm: &mut LiteSVM,
     source: &Pubkey,

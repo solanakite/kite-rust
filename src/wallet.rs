@@ -170,7 +170,7 @@ pub fn check_account_is_closed(litesvm: &LiteSVM, account: &Pubkey, message: &st
     assert!(
         litesvm
             .get_account(account)
-            .map_or(true, |a| a.data.is_empty()),
+            .is_none_or(|a| a.data.is_empty()),
         "{}",
         message
     );
