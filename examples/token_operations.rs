@@ -9,7 +9,7 @@
 use litesvm::LiteSVM;
 use solana_kite::{
     create_wallet, create_token_mint, create_associated_token_account,
-    mint_tokens_to_account, get_token_account_balance, assert_token_balance,
+    mint_tokens_to_token_account, get_token_account_balance, assert_token_account_balance,
     SolanaKiteError,
 };
 use solana_signer::Signer;
@@ -50,7 +50,7 @@ fn main() -> Result<(), SolanaKiteError> {
 
     // Mint 1000 tokens (1000 * 10^6 = 1,000,000,000 base units)
     let mint_amount = 1_000_000_000; // 1000 tokens with 6 decimals
-    mint_tokens_to_account(
+    mint_tokens_to_token_account(
         &mut litesvm,
         &mint,
         &user_token_account,
@@ -65,12 +65,12 @@ fn main() -> Result<(), SolanaKiteError> {
     println!("   That's {} tokens (with 6 decimals)", final_balance as f64 / 1_000_000.0);
 
     // Assert the balance is correct
-    assert_token_balance(&litesvm, &user_token_account, mint_amount, "Balance should match minted amount");
+    assert_token_account_balance(&litesvm, &user_token_account, mint_amount, "Balance should match minted amount");
     println!("✅ Balance assertion passed");
 
     // Mint more tokens to demonstrate cumulative balance
     let additional_mint = 500_000_000; // 500 more tokens
-    mint_tokens_to_account(
+    mint_tokens_to_token_account(
         &mut litesvm,
         &mint,
         &user_token_account,
@@ -84,7 +84,7 @@ fn main() -> Result<(), SolanaKiteError> {
     println!("✅ Total balance after second mint: {} base units", total_balance);
     println!("   That's {} tokens (with 6 decimals)", total_balance as f64 / 1_000_000.0);
     
-    assert_token_balance(&litesvm, &user_token_account, expected_total, "Total balance should be cumulative");
+    assert_token_account_balance(&litesvm, &user_token_account, expected_total, "Total balance should be cumulative");
     println!("✅ Cumulative balance assertion passed");
 
     println!("🎉 Token operations example completed successfully!");
