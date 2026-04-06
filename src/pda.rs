@@ -14,16 +14,11 @@ pub enum Seed {
     Bytes(Vec<u8>),
     /// 64-bit unsigned integer seed value (stored as little-endian bytes)
     U64(u64),
-    /// Public key seed value
+    /// Address seed value — valid for any 32-byte address, including PDAs and program IDs.
     Address(Pubkey),
 }
 
 impl Seed {
-    /// Converts the seed to its byte representation.
-    ///
-    /// # Returns
-    ///
-    /// Returns a vector of bytes representing the seed value.
     fn to_bytes(&self) -> Vec<u8> {
         match self {
             Seed::String(string_value) => string_value.as_bytes().to_vec(),
@@ -75,6 +70,7 @@ impl Seed {
 /// assert_eq!(pda, pda2);
 /// assert_eq!(bump, bump2);
 /// ```
+#[must_use]
 pub fn get_pda_and_bump(seeds: &[Seed], program_id: &Pubkey) -> (Pubkey, u8) {
     let seed_bytes: Vec<Vec<u8>> = seeds.iter().map(|seed| seed.to_bytes()).collect();
     let seed_slices: Vec<&[u8]> = seed_bytes.iter().map(|v| v.as_slice()).collect();
@@ -183,7 +179,7 @@ mod tests {
 
         match pubkey_seed {
             Seed::Address(_) => {} // Just verify it's the right variant
-            _ => panic!("Expected address seed"),
+            _ => panic!("Expected pubkey seed"),
         }
 
         match bytes_seed {

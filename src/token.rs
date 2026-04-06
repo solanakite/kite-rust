@@ -1,18 +1,18 @@
 //! Token operations for SPL tokens on Solana.
 
+use crate::constants::{SPL_TOKEN_MINT_SIZE, TOKEN_ACCOUNT_AMOUNT_END, TOKEN_ACCOUNT_AMOUNT_OFFSET};
 use crate::error::SolanaKiteError;
+use crate::transaction::send_transaction_from_instructions;
 use litesvm::LiteSVM;
 use solana_keypair::Keypair;
-use solana_message::Message;
 use solana_pubkey::Pubkey;
 use solana_signer::Signer;
-use solana_transaction::Transaction;
 use spl_associated_token_account::instruction::create_associated_token_account as create_ata_instruction;
 use spl_token::instruction::mint_to;
 
 /// Creates a new SPL token mint with the specified mint authority and decimals.
 ///
-/// This function creates a new token mint account with proper rent exemption and 
+/// This function creates a new token mint account with proper rent exemption and
 /// initializes it as an SPL token mint. You can optionally specify a custom mint
 /// address, or let the function generate a unique one.
 ///
@@ -34,20 +34,24 @@ use spl_token::instruction::mint_to;
 /// # Example
 ///
 /// ```rust
-/// use solana_kite::create_token_mint;
+/// use solana_kite::{create_token_mint, create_wallet};
 /// use litesvm::LiteSVM;
-/// use solana_keypair::Keypair;
 /// use solana_pubkey::Pubkey;
+/// use solana_signer::Signer;
 ///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let mut litesvm = LiteSVM::new();
-/// let mint_authority = Keypair::new();
-/// 
+/// let mint_authority = create_wallet(&mut litesvm, 1_000_000_000)?;
+///
 /// // Create a mint with auto-generated address
-/// let mint_pubkey = create_token_mint(&mut litesvm, &mint_authority, 6, None);
-/// 
-/// // Or create a mint with a custom address
+/// let mint_pubkey = create_token_mint(&mut litesvm, &mint_authority, 6, None)?;
+///
+/// // Or create a mint with a specific address
 /// let custom_mint = Pubkey::new_unique();
-/// let mint_pubkey = create_token_mint(&mut litesvm, &mint_authority, 6, Some(custom_mint));
+/// let mint_pubkey2 = create_token_mint(&mut litesvm, &mint_authority, 6, Some(custom_mint))?;
+/// assert_eq!(mint_pubkey2, custom_mint);
+/// # Ok(())
+/// # }
 /// ```
 pub fn create_token_mint(
     litesvm: &mut LiteSVM,
@@ -56,20 +60,20 @@ pub fn create_token_mint(
     mint: Option<Pubkey>,
 ) -> Result<Pubkey, SolanaKiteError> {
     let mint = mint.unwrap_or(Pubkey::new_unique());
-    let rent = litesvm.minimum_balance_for_rent_exemption(82);
+    let rent = litesvm.minimum_balance_for_rent_exemption(SPL_TOKEN_MINT_SIZE);
 
     litesvm
         .set_account(
             mint,
             solana_account::Account {
                 lamports: rent,
-                data: vec![0u8; 82],
+                data: vec![0u8; SPL_TOKEN_MINT_SIZE],
                 owner: spl_token::ID,
                 executable: false,
                 rent_epoch: 0,
             },
         )
-        .map_err(|e| SolanaKiteError::TokenOperationFailed(format!("Failed to create mint account: {:?}", e)))?;
+        .map_err(|e| SolanaKiteError::TokenOperationFailed(format!("Failed to create mint account: {e}")))?;
 
     let initialize_mint_instruction = spl_token::instruction::initialize_mint(
         &spl_token::ID,
@@ -78,16 +82,14 @@ pub fn create_token_mint(
         None,
         decimals,
     )
-    .map_err(|e| SolanaKiteError::TokenOperationFailed(format!("Failed to create initialize mint instruction: {:?}", e)))?;
+    .map_err(|e| SolanaKiteError::TokenOperationFailed(format!("Failed to create initialize mint instruction: {e}")))?;
 
-    let message = Message::new(&[initialize_mint_instruction], Some(&mint_authority.pubkey()));
-    let mut transaction = Transaction::new_unsigned(message);
-    let blockhash = litesvm.latest_blockhash();
-    transaction.sign(&[mint_authority], blockhash);
-    
-    litesvm
-        .send_transaction(transaction)
-        .map_err(|e| SolanaKiteError::TokenOperationFailed(format!("Failed to initialize mint: {:?}", e)))?;
+    send_transaction_from_instructions(
+        litesvm,
+        vec![initialize_mint_instruction],
+        &[mint_authority],
+        &mint_authority.pubkey(),
+    )?;
 
     Ok(mint)
 }
@@ -127,7 +129,7 @@ pub fn create_token_mint(
 /// let payer_wallet = create_wallet(&mut litesvm, 1_000_000_000)?;
 /// let mint_authority = create_wallet(&mut litesvm, 1_000_000_000)?;
 /// let mint_pubkey = create_token_mint(&mut litesvm, &mint_authority, 6, None)?;
-/// 
+///
 /// let token_account = create_associated_token_account(
 ///     &mut litesvm,
 ///     &owner_wallet.pubkey(),
@@ -146,29 +148,19 @@ pub fn create_associated_token_account(
     let associated_token_account =
         spl_associated_token_account::get_associated_token_address(owner, mint);
 
-    let create_ata_instruction = create_ata_instruction(
-        &payer.pubkey(),
-        &owner,
-        mint,
-        &spl_token::id(),
-    );
+    let instruction = create_ata_instruction(&payer.pubkey(), owner, mint, &spl_token::ID);
 
-    let message = Message::new(&[create_ata_instruction], Some(&payer.pubkey()));
-    let mut transaction = Transaction::new_unsigned(message);
-    let blockhash = litesvm.latest_blockhash();
-    transaction.sign(&[payer], blockhash);
-    
-    litesvm
-        .send_transaction(transaction)
-        .map_err(|e| SolanaKiteError::TokenOperationFailed(format!("Failed to create associated token account: {:?}", e)))?;
+    send_transaction_from_instructions(
+        litesvm,
+        vec![instruction],
+        &[payer],
+        &payer.pubkey(),
+    )?;
 
     Ok(associated_token_account)
 }
 
 /// Mints tokens to a specified token account.
-///
-/// This function creates a mint_to instruction and sends it as a transaction.
-/// The mint authority must have permission to mint tokens for the specified mint.
 ///
 /// # Arguments
 ///
@@ -185,7 +177,7 @@ pub fn create_associated_token_account(
 /// # Example
 ///
 /// ```rust
-/// use solana_kite::{create_token_mint, create_associated_token_account, mint_tokens_to_account, create_wallet};
+/// use solana_kite::{create_token_mint, create_associated_token_account, mint_tokens_to_token_account, create_wallet};
 /// use litesvm::LiteSVM;
 /// use solana_signer::Signer;
 ///
@@ -195,8 +187,8 @@ pub fn create_associated_token_account(
 /// let owner = create_wallet(&mut litesvm, 1_000_000_000)?;
 /// let mint = create_token_mint(&mut litesvm, &mint_authority, 6, None)?;
 /// let token_account = create_associated_token_account(&mut litesvm, &owner.pubkey(), &mint, &owner)?;
-/// 
-/// mint_tokens_to_account(
+///
+/// mint_tokens_to_token_account(
 ///     &mut litesvm,
 ///     &mint,
 ///     &token_account,
@@ -206,39 +198,37 @@ pub fn create_associated_token_account(
 /// # Ok(())
 /// # }
 /// ```
-pub fn mint_tokens_to_account(
+pub fn mint_tokens_to_token_account(
     litesvm: &mut LiteSVM,
     mint: &Pubkey,
     token_account: &Pubkey,
     amount: u64,
     mint_authority: &Keypair,
 ) -> Result<(), SolanaKiteError> {
-    let mint_to_instruction = mint_to(
-        &spl_token::id(),
+    let instruction = mint_to(
+        &spl_token::ID,
         mint,
         token_account,
         &mint_authority.pubkey(),
         &[],
         amount,
     )
-    .map_err(|e| SolanaKiteError::TokenOperationFailed(format!("Failed to create mint_to instruction: {:?}", e)))?;
+    .map_err(|e| SolanaKiteError::TokenOperationFailed(format!("Failed to create mint_to instruction: {e}")))?;
 
-    let message = Message::new(&[mint_to_instruction], Some(&mint_authority.pubkey()));
-    let mut transaction = Transaction::new_unsigned(message);
-    let blockhash = litesvm.latest_blockhash();
-    transaction.sign(&[mint_authority], blockhash);
-    
-    litesvm
-        .send_transaction(transaction)
-        .map_err(|e| SolanaKiteError::TokenOperationFailed(format!("Failed to mint tokens: {:?}", e)))?;
+    send_transaction_from_instructions(
+        litesvm,
+        vec![instruction],
+        &[mint_authority],
+        &mint_authority.pubkey(),
+    )?;
 
     Ok(())
 }
 
 /// Gets the token balance of a token account.
 ///
-/// This function reads the token account data and extracts the balance from the
-/// SPL token account layout.
+/// Works for both Classic Token Program and Token Extensions accounts — both
+/// share the same base account layout, with the amount at the same byte offset.
 ///
 /// # Arguments
 ///
@@ -257,16 +247,22 @@ pub fn mint_tokens_to_account(
 /// # Example
 ///
 /// ```rust
-/// use solana_kite::get_token_account_balance;
+/// use solana_kite::{create_token_mint, create_associated_token_account,
+///     get_token_account_balance, create_wallet};
 /// use litesvm::LiteSVM;
-/// use solana_pubkey::Pubkey;
+/// use solana_signer::Signer;
 ///
-/// let litesvm = LiteSVM::new();
-/// let token_account = Pubkey::new_unique();
-/// 
-/// // This would fail in practice without a real token account
-/// // let balance = get_token_account_balance(&litesvm, &token_account)?;
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let mut litesvm = LiteSVM::new();
+/// let authority = create_wallet(&mut litesvm, 1_000_000_000)?;
+/// let mint = create_token_mint(&mut litesvm, &authority, 6, None)?;
+/// let ata = create_associated_token_account(&mut litesvm, &authority.pubkey(), &mint, &authority)?;
+/// let balance = get_token_account_balance(&litesvm, &ata)?;
+/// assert_eq!(balance, 0);
+/// # Ok(())
+/// # }
 /// ```
+#[must_use = "call assert_token_account_balance if you want a panicking assertion"]
 pub fn get_token_account_balance(
     litesvm: &LiteSVM,
     token_account: &Pubkey,
@@ -274,61 +270,87 @@ pub fn get_token_account_balance(
     let account = litesvm
         .get_account(token_account)
         .ok_or_else(|| SolanaKiteError::TokenOperationFailed("Token account not found".to_string()))?;
-    
+
     let data = &account.data;
-    if data.len() < 72 {
+    if data.len() < TOKEN_ACCOUNT_AMOUNT_END {
         return Err(SolanaKiteError::TokenOperationFailed(
             "Invalid token account data length".to_string(),
         ));
     }
-    
-    // SPL Token account layout: amount is at bytes 64..72 (u64, little endian)
-    let amount_bytes = &data[64..72];
+
     let amount = u64::from_le_bytes(
-        amount_bytes
+        data[TOKEN_ACCOUNT_AMOUNT_OFFSET..TOKEN_ACCOUNT_AMOUNT_END]
             .try_into()
             .map_err(|_| SolanaKiteError::TokenOperationFailed("Failed to parse token amount".to_string()))?
     );
-    
+
     Ok(amount)
 }
 
-/// Asserts that a token account has the expected balance.
+/// Derives the associated token account address for a Classic Token Program mint.
 ///
-/// This is a convenience function for testing that combines balance checking
-/// with assertion logic.
-///
-/// # Arguments
-///
-/// * `litesvm` - Reference to the LiteSVM instance
-/// * `token_account` - Public key of the token account to check
-/// * `expected_balance` - Expected balance in base units
-/// * `message` - Custom error message for the assertion
-///
-/// # Panics
-///
-/// Panics if the actual balance doesn't match the expected balance.
+/// Useful for pre-computing the address before calling
+/// [`create_associated_token_account`], e.g. to pass it to a program instruction
+/// before the account exists onchain.
 ///
 /// # Example
 ///
 /// ```rust
-/// use solana_kite::assert_token_balance;
+/// use solana_kite::{create_token_mint, create_associated_token_account,
+///     get_token_account_address, create_wallet};
 /// use litesvm::LiteSVM;
-/// use solana_pubkey::Pubkey;
+/// use solana_signer::Signer;
 ///
-/// let litesvm = LiteSVM::new();
-/// let token_account = Pubkey::new_unique();
-/// 
-/// // This would panic in practice without a real token account
-/// // assert_token_balance(&litesvm, &token_account, 1000000, "Balance should be 1 token");
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let mut litesvm = LiteSVM::new();
+/// let authority = create_wallet(&mut litesvm, 1_000_000_000)?;
+/// let mint = create_token_mint(&mut litesvm, &authority, 6, None)?;
+///
+/// let predicted = get_token_account_address(&authority.pubkey(), &mint);
+/// let actual = create_associated_token_account(&mut litesvm, &authority.pubkey(), &mint, &authority)?;
+/// assert_eq!(predicted, actual);
+/// # Ok(())
+/// # }
 /// ```
-pub fn assert_token_balance(
+#[must_use]
+pub fn get_token_account_address(owner: &Pubkey, mint: &Pubkey) -> Pubkey {
+    spl_associated_token_account::get_associated_token_address(owner, mint)
+}
+
+/// Asserts that a token account has the expected balance.
+///
+/// Works for both Classic Token Program and Token Extensions accounts.
+/// Convenience wrapper around [`get_token_account_balance`] for test assertions.
+///
+/// # Panics
+///
+/// Panics if the actual balance doesn't match the expected balance, with the provided message.
+///
+/// # Example
+///
+/// ```rust
+/// use solana_kite::{create_wallet, create_token_mint, create_associated_token_account,
+///     mint_tokens_to_token_account, assert_token_account_balance};
+/// use litesvm::LiteSVM;
+/// use solana_signer::Signer;
+///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let mut litesvm = LiteSVM::new();
+/// let authority = create_wallet(&mut litesvm, 1_000_000_000)?;
+/// let mint = create_token_mint(&mut litesvm, &authority, 6, None)?;
+/// let ata = create_associated_token_account(&mut litesvm, &authority.pubkey(), &mint, &authority)?;
+/// mint_tokens_to_token_account(&mut litesvm, &mint, &ata, 1_000_000, &authority)?;
+/// assert_token_account_balance(&litesvm, &ata, 1_000_000, "Should have 1 token");
+/// # Ok(())
+/// # }
+/// ```
+pub fn assert_token_account_balance(
     litesvm: &LiteSVM,
     token_account: &Pubkey,
     expected_balance: u64,
     message: &str,
 ) {
     let actual_balance = get_token_account_balance(litesvm, token_account)
-        .expect("Failed to get token account balance");
+        .unwrap_or_else(|e| panic!("{}: {}", message, e));
     assert_eq!(actual_balance, expected_balance, "{}", message);
 }

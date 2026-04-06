@@ -2,6 +2,7 @@
 
 use crate::error::SolanaKiteError;
 use litesvm::LiteSVM;
+use solana_instruction::Instruction;
 use solana_keypair::Keypair;
 use solana_message::Message;
 use solana_pubkey::Pubkey;
@@ -38,7 +39,7 @@ use solana_transaction::Transaction;
 /// let mut litesvm = LiteSVM::new();
 /// let payer = create_wallet(&mut litesvm, 1_000_000_000)?;
 /// let instructions = vec![]; // Your instructions here
-/// 
+///
 /// send_transaction_from_instructions(
 ///     &mut litesvm,
 ///     instructions,
@@ -50,7 +51,7 @@ use solana_transaction::Transaction;
 /// ```
 pub fn send_transaction_from_instructions(
     litesvm: &mut LiteSVM,
-    instructions: Vec<solana_instruction::Instruction>,
+    instructions: Vec<Instruction>,
     signers: &[&Keypair],
     fee_payer: &Pubkey,
 ) -> Result<(), SolanaKiteError> {
@@ -58,9 +59,9 @@ pub fn send_transaction_from_instructions(
     let message = Message::new(&instructions, Some(fee_payer));
     let mut transaction = Transaction::new_unsigned(message);
     transaction.sign(signers, recent_blockhash);
-    
+
     litesvm
         .send_transaction(transaction)
         .map(|_| ())
-        .map_err(|e| SolanaKiteError::TransactionFailed(format!("{:?}", e)))
+        .map_err(|e| SolanaKiteError::TransactionFailed(format!("{e:?}")))
 }

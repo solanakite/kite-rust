@@ -101,7 +101,7 @@ pub fn get_hook_accounts_address(mint: &Pubkey, hook_program_id: &Pubkey) -> Pub
 /// let mut litesvm = LiteSVM::new();
 /// let authority = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
 /// let hook_program_id = Pubkey::new_unique();
-/// let program_bytes = include_bytes!("../target/deploy/my_hook.so");
+/// # let program_bytes: &[u8] = &[];
 /// deploy_program_bytes(&mut litesvm, &hook_program_id, program_bytes).unwrap();
 /// let mint = Pubkey::new_unique(); // a Token Extensions mint with the TransferHook extension
 ///
