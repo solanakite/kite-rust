@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-07-01
+
+### Breaking Changes
+
+- **LiteSVM 0.13**: Bumped from 0.11.0 to 0.13.1, adding support for Agave 4.0
+- **Relaxed `solana-instruction`**: Loosened from `^3.3.0` to `>=3.2, <4` so Cargo can satisfy litesvm 0.13.1's exact `=3.2.0` pin on `solana-instruction`
+
+### Notes
+
+- No source changes were required — the litesvm public API surface used by this crate (`LiteSVM::new`, `latest_blockhash`, `set_account`, `minimum_balance_for_rent_exemption`, `send_transaction`) is unchanged from 0.11 to 0.13. All 22 integration tests and 24 doc-tests pass.
+
 ## [0.3.0] - 2026-04-06
 
 ### Breaking Changes
