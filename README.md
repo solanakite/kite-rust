@@ -27,10 +27,10 @@ or add to your `Cargo.toml`:
 
 ```toml
 [dev-dependencies]
-solana-kite = "0.3"
+solana-kite = "0.5"
 ```
 
-**Compatibility:** Solana 3.x / Anchor 1.0 / LiteSVM 0.11
+**Compatibility:** Solana 3.x / Anchor 1.2 / LiteSVM 0.16
 
 ## Quick Start
 

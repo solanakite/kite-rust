@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-09-08
+
+### Breaking Changes
+
+- **LiteSVM 0.16**: Bumped from 0.13.1 to 0.16.0, adding support for Agave 4.2
+- **Solana 4.x SDK crates**: `solana-account` (3.4.0 → 4.3.0), `solana-message` (3.1.0 → 4.2.4) and `solana-transaction` (3.1.0 → 4.1.5) moved to their 4.x lines to match litesvm 0.16
+
+### Notes
+
+- Anchor 1.2.0 depends on `solana-loader-v3-interface ^6.1.1`, which needs `solana-instruction ^3.3.0`. litesvm 0.13.1 pinned `solana-instruction = "=3.2.0"`, so Anchor 1.2.0 programs could not use solana-kite 0.4.0 in their tests. litesvm 0.16.0 wants `solana-instruction ~3.4.0`, which the existing `>=3.2, <4` range already allows.
+- No source changes were required. All 2 unit tests, 22 integration tests and 24 doc-tests pass.
+
 ## [0.4.0] - 2026-07-01
 
 ### Breaking Changes
