@@ -14,7 +14,7 @@ pub enum Seed {
     Bytes(Vec<u8>),
     /// 64-bit unsigned integer seed value (stored as little-endian bytes)
     U64(u64),
-    /// Address seed value — valid for any 32-byte address, including PDAs and program IDs.
+    /// Address seed value - valid for any 32-byte address, including PDAs and program IDs.
     Address(Pubkey),
 }
 
@@ -73,7 +73,7 @@ impl Seed {
 #[must_use]
 pub fn get_pda_and_bump(seeds: &[Seed], program_id: &Pubkey) -> (Pubkey, u8) {
     let seed_bytes: Vec<Vec<u8>> = seeds.iter().map(|seed| seed.to_bytes()).collect();
-    let seed_slices: Vec<&[u8]> = seed_bytes.iter().map(|v| v.as_slice()).collect();
+    let seed_slices: Vec<&[u8]> = seed_bytes.iter().map(|bytes| bytes.as_slice()).collect();
     Pubkey::find_program_address(&seed_slices, program_id)
 }
 

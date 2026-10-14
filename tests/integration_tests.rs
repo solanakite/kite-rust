@@ -1,13 +1,20 @@
 //! Integration tests for Solana Kite
 
 use litesvm::LiteSVM;
+use solana_compute_budget::compute_budget_limits::MAX_COMPUTE_UNIT_LIMIT;
+use solana_compute_budget_interface::ComputeBudgetInstruction;
+use solana_instruction::Instruction;
 use solana_kite::{
-    assert_sol_balance, assert_token_account_balance, build_hook_accounts, check_account_is_closed,
-    create_associated_token_account, create_token_mint, create_wallet, create_wallets,
-    get_hook_accounts_address, get_pda_and_bump, get_sol_balance, get_token_account_address,
-    get_token_account_balance, mint_tokens_to_token_account, seeds,
-    send_transaction_from_instructions, HookAccount, Seed,
+    assert_sol_balance, assert_token_account_balance, build_hook_accounts,
+    build_transaction_from_instructions, check_account_is_closed, create_associated_token_account,
+    create_token_mint, create_wallet, create_wallets, get_hook_accounts_address, get_pda_and_bump,
+    get_sol_balance, get_token_account_address, get_token_account_balance, get_transaction_config,
+    mint_tokens_to_token_account, seeds, send_transaction_from_instructions, HookAccount, Seed,
+    SolanaKiteError,
 };
+use solana_message::{v1, VersionedMessage};
+use solana_packet::PACKET_DATA_SIZE;
+use solana_system_interface::instruction::transfer;
 
 use solana_pubkey::Pubkey;
 use solana_signer::Signer;
@@ -56,10 +63,10 @@ fn test_token_operations() {
     let mint_authority = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
     let user = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
 
-    let mint = create_token_mint(&mut litesvm, &mint_authority, 9, None).unwrap();
+    let mint = create_token_mint(&mut litesvm, &mint_authority, 9, None, None).unwrap();
 
     let token_account =
-        create_associated_token_account(&mut litesvm, &user.pubkey(), &mint, &user).unwrap();
+        create_associated_token_account(&mut litesvm, &user.pubkey(), &mint, &user, None).unwrap();
 
     let initial_balance = get_token_account_balance(&litesvm, &token_account).unwrap();
     assert_eq!(initial_balance, 0);
@@ -71,6 +78,7 @@ fn test_token_operations() {
         &token_account,
         mint_amount,
         &mint_authority,
+        None,
     )
     .unwrap();
 
@@ -89,11 +97,11 @@ fn test_token_operations() {
 fn test_get_token_account_address() {
     let mut litesvm = LiteSVM::new();
     let authority = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
-    let mint = create_token_mint(&mut litesvm, &authority, 6, None).unwrap();
+    let mint = create_token_mint(&mut litesvm, &authority, 6, None, None).unwrap();
 
     let predicted = get_token_account_address(&authority.pubkey(), &mint);
     let actual =
-        create_associated_token_account(&mut litesvm, &authority.pubkey(), &mint, &authority)
+        create_associated_token_account(&mut litesvm, &authority.pubkey(), &mint, &authority, None)
             .unwrap();
     assert_eq!(predicted, actual);
 }
@@ -103,12 +111,15 @@ fn test_transaction_sending() {
     let mut litesvm = LiteSVM::new();
     let wallet = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
 
+    // A transaction with no instructions uses no compute units, so a limit of
+    // 0 is enough.
     let instructions = vec![];
     let result = send_transaction_from_instructions(
         &mut litesvm,
         instructions,
         &[&wallet],
         &wallet.pubkey(),
+        Some(0),
     );
 
     assert!(result.is_ok());
@@ -151,7 +162,7 @@ fn test_account_closure_check_panics_for_open_account() {
     let mut litesvm = LiteSVM::new();
     let authority = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
     // A mint account has non-empty data, so check_account_is_closed should panic
-    let mint = create_token_mint(&mut litesvm, &authority, 6, None).unwrap();
+    let mint = create_token_mint(&mut litesvm, &authority, 6, None, None).unwrap();
     check_account_is_closed(&litesvm, &mint, "Account should still be open");
 }
 
@@ -164,7 +175,7 @@ fn test_hook_account_helpers() {
     assert_ne!(pda, mint);
     assert_ne!(pda, hook_program);
 
-    // Deterministic — same inputs give same address
+    // Deterministic - same inputs give same address
     assert_eq!(get_hook_accounts_address(&mint, &hook_program), pda);
 
     // build_hook_accounts always appends hook program + PDA + Token Extensions program
@@ -193,15 +204,18 @@ fn test_multiple_token_mints() {
     let user = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
 
     let specified_mint = Pubkey::new_unique();
-    let mint_6 = create_token_mint(&mut litesvm, &mint_authority, 6, Some(specified_mint)).unwrap();
-    let mint_9 = create_token_mint(&mut litesvm, &mint_authority, 9, None).unwrap();
+    let mint_6 =
+        create_token_mint(&mut litesvm, &mint_authority, 6, Some(specified_mint), None).unwrap();
+    let mint_9 = create_token_mint(&mut litesvm, &mint_authority, 9, None, None).unwrap();
 
     assert_eq!(mint_6, specified_mint);
 
     let account_6 =
-        create_associated_token_account(&mut litesvm, &user.pubkey(), &mint_6, &user).unwrap();
+        create_associated_token_account(&mut litesvm, &user.pubkey(), &mint_6, &user, None)
+            .unwrap();
     let account_9 =
-        create_associated_token_account(&mut litesvm, &user.pubkey(), &mint_9, &user).unwrap();
+        create_associated_token_account(&mut litesvm, &user.pubkey(), &mint_9, &user, None)
+            .unwrap();
 
     mint_tokens_to_token_account(
         &mut litesvm,
@@ -209,6 +223,7 @@ fn test_multiple_token_mints() {
         &account_6,
         1_000_000,
         &mint_authority,
+        None,
     )
     .unwrap();
     mint_tokens_to_token_account(
@@ -217,6 +232,7 @@ fn test_multiple_token_mints() {
         &account_9,
         1_000_000_000,
         &mint_authority,
+        None,
     )
     .unwrap();
 
@@ -254,6 +270,7 @@ mod token_extensions_tests {
             &[MintExtension::MintCloseAuthority {
                 close_authority: authority.pubkey(),
             }],
+            None,
         )
         .unwrap();
 
@@ -278,6 +295,7 @@ mod token_extensions_tests {
             &[MintExtension::PermanentDelegate {
                 delegate: authority.pubkey(),
             }],
+            None,
         )
         .unwrap();
 
@@ -299,6 +317,7 @@ mod token_extensions_tests {
             0,
             None,
             &[MintExtension::NonTransferable],
+            None,
         )
         .unwrap();
 
@@ -327,6 +346,7 @@ mod token_extensions_tests {
                     delegate: authority.pubkey(),
                 },
             ],
+            None,
         )
         .unwrap();
 
@@ -352,15 +372,22 @@ mod token_extensions_tests {
             &[MintExtension::MintCloseAuthority {
                 close_authority: authority.pubkey(),
             }],
+            None,
         )
         .unwrap();
 
         // Create token accounts
-        let authority_ata =
-            create_token_extensions_account(&mut litesvm, &authority.pubkey(), &mint, &authority)
-                .unwrap();
+        let authority_ata = create_token_extensions_account(
+            &mut litesvm,
+            &authority.pubkey(),
+            &mint,
+            &authority,
+            None,
+        )
+        .unwrap();
         let user_ata =
-            create_token_extensions_account(&mut litesvm, &user.pubkey(), &mint, &user).unwrap();
+            create_token_extensions_account(&mut litesvm, &user.pubkey(), &mint, &user, None)
+                .unwrap();
 
         // Mint tokens to authority's account
         let mint_amount = 1_000_000; // 1 token (6 decimals)
@@ -370,6 +397,7 @@ mod token_extensions_tests {
             &authority_ata,
             mint_amount,
             &authority,
+            None,
         )
         .unwrap();
 
@@ -391,6 +419,7 @@ mod token_extensions_tests {
             transfer_amount,
             6, // decimals
             &[],
+            None,
         )
         .unwrap();
 
@@ -419,20 +448,33 @@ mod token_extensions_tests {
             6,
             None,
             &[MintExtension::NonTransferable],
+            None,
         )
         .unwrap();
 
-        let ata =
-            create_token_extensions_account(&mut litesvm, &authority.pubkey(), &mint, &authority)
-                .unwrap();
+        let ata = create_token_extensions_account(
+            &mut litesvm,
+            &authority.pubkey(),
+            &mint,
+            &authority,
+            None,
+        )
+        .unwrap();
 
         // Initial balance should be zero
         let balance = get_token_account_balance(&litesvm, &ata).unwrap();
         assert_eq!(balance, 0);
 
         // Mint and check
-        mint_tokens_to_token_extensions_account(&mut litesvm, &mint, &ata, 42_000, &authority)
-            .unwrap();
+        mint_tokens_to_token_extensions_account(
+            &mut litesvm,
+            &mint,
+            &ata,
+            42_000,
+            &authority,
+            None,
+        )
+        .unwrap();
         assert_token_account_balance(&litesvm, &ata, 42_000, "Should have 42000 tokens");
     }
 
@@ -451,6 +493,7 @@ mod token_extensions_tests {
                 fee_basis_points: 100,
                 maximum_fee: 1000,
             }],
+            None,
         )
         .unwrap();
 
@@ -476,6 +519,7 @@ mod token_extensions_tests {
                 authority: authority.pubkey(),
                 metadata_address,
             }],
+            None,
         )
         .unwrap();
 
@@ -501,6 +545,7 @@ mod token_extensions_tests {
                 rate_authority: authority.pubkey(),
                 rate: 500,
             }],
+            None,
         )
         .unwrap();
 
@@ -527,6 +572,7 @@ mod token_extensions_tests {
             &[MintExtension::DefaultAccountState {
                 initial_state: TokenAccountState::Initialized,
             }],
+            None,
         )
         .unwrap();
 
@@ -551,6 +597,7 @@ mod token_extensions_tests {
             &[MintExtension::TransferHook {
                 program_id: hook_program,
             }],
+            None,
         )
         .unwrap();
 
@@ -565,13 +612,248 @@ mod token_extensions_tests {
     fn test_get_token_extensions_account_address() {
         let mut litesvm = LiteSVM::new();
         let authority = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
-        let mint = create_token_extensions_mint(&mut litesvm, &authority, 6, None, &[]).unwrap();
+        let mint =
+            create_token_extensions_mint(&mut litesvm, &authority, 6, None, &[], None).unwrap();
 
         let predicted = get_token_extensions_account_address(&authority.pubkey(), &mint);
-        let actual =
-            create_token_extensions_account(&mut litesvm, &authority.pubkey(), &mint, &authority)
-                .unwrap();
+        let actual = create_token_extensions_account(
+            &mut litesvm,
+            &authority.pubkey(),
+            &mint,
+            &authority,
+            None,
+        )
+        .unwrap();
 
         assert_eq!(predicted, actual);
     }
+}
+
+/// More compute units than a System Program transfer uses (150 in LiteSVM 0.16).
+const TRANSFER_COMPUTE_UNIT_LIMIT: u32 = 1_000;
+
+#[test]
+fn test_get_transaction_config() {
+    let config = get_transaction_config(50_000);
+    assert_eq!(config.compute_unit_limit, Some(50_000));
+    assert_eq!(
+        config.loaded_accounts_data_size_limit,
+        Some(64 * 1024 * 1024)
+    );
+    assert_eq!(config.heap_size, None);
+    assert_eq!(config.priority_fee, None);
+}
+
+#[test]
+fn test_build_transaction_from_instructions_builds_v1() {
+    let mut litesvm = LiteSVM::new();
+    let payer = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
+    let recipient = Pubkey::new_unique();
+    let instructions = vec![transfer(&payer.pubkey(), &recipient, 1_000_000)];
+
+    // Pass the payer twice, as callers do when the fee payer is also a named
+    // signer. The transaction holds one signature for the payer.
+    let transaction = build_transaction_from_instructions(
+        &litesvm,
+        &instructions,
+        &[&payer, &payer],
+        &payer.pubkey(),
+        get_transaction_config(TRANSFER_COMPUTE_UNIT_LIMIT),
+    )
+    .unwrap();
+    assert_eq!(transaction.signatures.len(), 1);
+    let VersionedMessage::V1(message) = &transaction.message else {
+        panic!("expected a v1 message");
+    };
+    assert_eq!(
+        message.config,
+        get_transaction_config(TRANSFER_COMPUTE_UNIT_LIMIT)
+    );
+    assert_eq!(wincode::serialize(&transaction).unwrap()[0], v1::V1_PREFIX);
+
+    litesvm.send_transaction(transaction).unwrap();
+    assert_eq!(get_sol_balance(&litesvm, &recipient), 1_000_000);
+}
+
+#[test]
+fn test_build_transaction_from_instructions_rejects_missing_signer() {
+    let mut litesvm = LiteSVM::new();
+    let payer = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
+    let sender = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
+    let instructions = vec![transfer(&sender.pubkey(), &Pubkey::new_unique(), 1_000_000)];
+
+    let result = build_transaction_from_instructions(
+        &litesvm,
+        &instructions,
+        &[&payer],
+        &payer.pubkey(),
+        get_transaction_config(TRANSFER_COMPUTE_UNIT_LIMIT),
+    );
+    let Err(SolanaKiteError::TransactionFailed(message)) = result else {
+        panic!("expected a TransactionFailed error, got {result:?}");
+    };
+    assert!(message.starts_with("Failed to sign transaction"));
+}
+
+#[test]
+fn test_send_transaction_rejects_compute_budget_instruction() {
+    let mut litesvm = LiteSVM::new();
+    let payer = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
+    let recipient = Pubkey::new_unique();
+    let instructions = vec![
+        ComputeBudgetInstruction::set_compute_unit_limit(100_000),
+        transfer(&payer.pubkey(), &recipient, 1_000_000),
+    ];
+
+    let result = send_transaction_from_instructions(
+        &mut litesvm,
+        instructions,
+        &[&payer],
+        &payer.pubkey(),
+        Some(TRANSFER_COMPUTE_UNIT_LIMIT),
+    );
+    let Err(SolanaKiteError::TransactionFailed(message)) = result else {
+        panic!("expected a TransactionFailed error, got {result:?}");
+    };
+    assert!(message.starts_with("ComputeBudget instructions do nothing in a v1 transaction"));
+
+    // Nothing was sent.
+    assert_eq!(get_sol_balance(&litesvm, &recipient), 0);
+}
+
+#[test]
+fn test_build_transaction_from_instructions_applies_compute_unit_limit() {
+    let mut litesvm = LiteSVM::new();
+    let payer = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
+    let recipient = Pubkey::new_unique();
+    let instructions = vec![transfer(&payer.pubkey(), &recipient, 1_000_000)];
+    let send_with_compute_unit_limit = |litesvm: &mut LiteSVM, compute_unit_limit: u32| {
+        let transaction = build_transaction_from_instructions(
+            litesvm,
+            &instructions,
+            &[&payer],
+            &payer.pubkey(),
+            get_transaction_config(compute_unit_limit),
+        )
+        .unwrap();
+        litesvm.send_transaction(transaction)
+    };
+
+    let transfer_compute_units = send_with_compute_unit_limit(&mut litesvm, MAX_COMPUTE_UNIT_LIMIT)
+        .unwrap()
+        .compute_units_consumed;
+    let transfer_compute_units = u32::try_from(transfer_compute_units).unwrap();
+
+    // One compute unit short of what the transfer costs fails, and moves no
+    // lamports.
+    assert!(send_with_compute_unit_limit(&mut litesvm, transfer_compute_units - 1).is_err());
+    assert_eq!(get_sol_balance(&litesvm, &recipient), 1_000_000);
+
+    // Exactly what the transfer costs succeeds.
+    send_with_compute_unit_limit(&mut litesvm, transfer_compute_units).unwrap();
+    assert_eq!(get_sol_balance(&litesvm, &recipient), 2_000_000);
+}
+
+#[test]
+fn test_send_transaction_larger_than_legacy_limit() {
+    let mut litesvm = LiteSVM::new();
+    let payer = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
+    let recipients: Vec<Pubkey> = (0..30).map(|_| Pubkey::new_unique()).collect();
+    let instructions: Vec<Instruction> = recipients
+        .iter()
+        .map(|recipient| transfer(&payer.pubkey(), recipient, 1_000_000))
+        .collect();
+
+    // Thirty transfers to thirty new accounts is too large for a legacy
+    // transaction.
+    let compute_unit_limit = 30 * TRANSFER_COMPUTE_UNIT_LIMIT;
+    let transaction = build_transaction_from_instructions(
+        &litesvm,
+        &instructions,
+        &[&payer],
+        &payer.pubkey(),
+        get_transaction_config(compute_unit_limit),
+    )
+    .unwrap();
+    assert!(wincode::serialize(&transaction).unwrap().len() > PACKET_DATA_SIZE);
+
+    send_transaction_from_instructions(
+        &mut litesvm,
+        instructions,
+        &[&payer],
+        &payer.pubkey(),
+        Some(compute_unit_limit),
+    )
+    .unwrap();
+    for recipient in &recipients {
+        assert_eq!(get_sol_balance(&litesvm, recipient), 1_000_000);
+    }
+}
+
+#[test]
+fn test_helper_with_too_low_compute_unit_limit_fails() {
+    let mut litesvm = LiteSVM::new();
+    let authority = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
+    let mint = create_token_mint(&mut litesvm, &authority, 6, None, None).unwrap();
+    let token_account =
+        create_associated_token_account(&mut litesvm, &authority.pubkey(), &mint, &authority, None)
+            .unwrap();
+
+    // Minting tokens needs more than one compute unit.
+    let result = mint_tokens_to_token_account(
+        &mut litesvm,
+        &mint,
+        &token_account,
+        1_000_000,
+        &authority,
+        Some(1),
+    );
+    assert!(result.is_err());
+    assert_eq!(
+        get_token_account_balance(&litesvm, &token_account).unwrap(),
+        0
+    );
+
+    // 20,000 is more than the Classic Token Program's mint_to uses.
+    mint_tokens_to_token_account(
+        &mut litesvm,
+        &mint,
+        &token_account,
+        1_000_000,
+        &authority,
+        Some(20_000),
+    )
+    .unwrap();
+    assert_eq!(
+        get_token_account_balance(&litesvm, &token_account).unwrap(),
+        1_000_000
+    );
+}
+
+#[test]
+fn test_send_transaction_without_compute_unit_limit_simulates() {
+    let mut litesvm = LiteSVM::new();
+    let payer = create_wallet(&mut litesvm, 1_000_000_000).unwrap();
+    let recipient = Pubkey::new_unique();
+
+    send_transaction_from_instructions(
+        &mut litesvm,
+        vec![transfer(&payer.pubkey(), &recipient, 1_000_000)],
+        &[&payer],
+        &payer.pubkey(),
+        None,
+    )
+    .unwrap();
+    assert_eq!(get_sol_balance(&litesvm, &recipient), 1_000_000);
+
+    // A transaction that fails in simulation is not sent.
+    let result = send_transaction_from_instructions(
+        &mut litesvm,
+        vec![transfer(&payer.pubkey(), &recipient, 10_000_000_000)],
+        &[&payer],
+        &payer.pubkey(),
+        None,
+    );
+    assert!(result.is_err());
+    assert_eq!(get_sol_balance(&litesvm, &recipient), 1_000_000);
 }

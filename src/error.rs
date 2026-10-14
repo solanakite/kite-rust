@@ -18,22 +18,22 @@ pub enum SolanaKiteError {
 }
 
 impl fmt::Display for SolanaKiteError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SolanaKiteError::TransactionFailed(msg) => {
-                write!(f, "Transaction failed: {}", msg)
+            SolanaKiteError::TransactionFailed(message) => {
+                write!(formatter, "Transaction failed: {}", message)
             }
-            SolanaKiteError::ProgramDeploymentFailed(msg) => {
-                write!(f, "Program deployment failed: {}", msg)
+            SolanaKiteError::ProgramDeploymentFailed(message) => {
+                write!(formatter, "Program deployment failed: {}", message)
             }
-            SolanaKiteError::TokenOperationFailed(msg) => {
-                write!(f, "Token operation failed: {}", msg)
+            SolanaKiteError::TokenOperationFailed(message) => {
+                write!(formatter, "Token operation failed: {}", message)
             }
-            SolanaKiteError::HookOperationFailed(msg) => {
-                write!(f, "Hook operation failed: {}", msg)
+            SolanaKiteError::HookOperationFailed(message) => {
+                write!(formatter, "Hook operation failed: {}", message)
             }
-            SolanaKiteError::AccountOperationFailed(msg) => {
-                write!(f, "Account operation failed: {}", msg)
+            SolanaKiteError::AccountOperationFailed(message) => {
+                write!(formatter, "Account operation failed: {}", message)
             }
         }
     }

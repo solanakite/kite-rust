@@ -37,11 +37,23 @@ fn main() -> Result<(), SolanaKiteError> {
     // Example of sending a transaction (empty instruction list for demo)
     let instructions = vec![]; // In practice, you'd have actual instructions here
 
+    // Every transaction states the most compute units it may use. One with no
+    // instructions uses none, so 0 is enough; choose a number your own
+    // instructions run in, or pass None to have kite simulate the transaction
+    // and use the compute units the simulation used.
+    let compute_unit_limit = Some(0);
+
     println!("📝 Transaction sending example:");
-    println!("   send_transaction_from_instructions(&mut litesvm, instructions, &[&wallet], &wallet.pubkey())?;");
+    println!("   send_transaction_from_instructions(&mut litesvm, instructions, &[&wallet], &wallet.pubkey(), compute_unit_limit)?;");
 
     // Actually send the empty transaction (this will succeed)
-    send_transaction_from_instructions(&mut litesvm, instructions, &[&wallet], &wallet.pubkey())?;
+    send_transaction_from_instructions(
+        &mut litesvm,
+        instructions,
+        &[&wallet],
+        &wallet.pubkey(),
+        compute_unit_limit,
+    )?;
     println!("✅ Sent transaction successfully");
 
     println!("🎉 Basic usage example completed successfully!");

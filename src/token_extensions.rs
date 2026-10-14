@@ -6,14 +6,14 @@
 //!
 //! # Supported Extensions
 //!
-//! - **TransferHook** — attach a program that runs on every transfer
-//! - **TransferFee** — automatic fee collection on transfers
-//! - **MintCloseAuthority** — allow closing a mint account
-//! - **PermanentDelegate** — irrevocable delegate for all token accounts
-//! - **NonTransferable** — soulbound tokens that cannot be transferred
-//! - **DefaultAccountState** — configure the default state for newly created token accounts
-//! - **InterestBearing** — onchain interest rate display
-//! - **MetadataPointer** — point to an onchain metadata account
+//! - **TransferHook** - attach a program that runs on every transfer
+//! - **TransferFee** - automatic fee collection on transfers
+//! - **MintCloseAuthority** - allow closing a mint account
+//! - **PermanentDelegate** - irrevocable delegate for all token accounts
+//! - **NonTransferable** - soulbound tokens that cannot be transferred
+//! - **DefaultAccountState** - configure the default state for newly created token accounts
+//! - **InterestBearing** - onchain interest rate display
+//! - **MetadataPointer** - point to an onchain metadata account
 //!
 //! # Example
 //!
@@ -35,6 +35,7 @@
 //!     &[MintExtension::MintCloseAuthority {
 //!         close_authority: authority.pubkey(),
 //!     }],
+//!     None,
 //! ).unwrap();
 //! ```
 
@@ -293,7 +294,7 @@ impl MintExtension {
 
 fn calculate_mint_size(extensions: &[MintExtension]) -> usize {
     if extensions.is_empty() {
-        // Without extensions, a Token Extensions mint is the same size as SPL Token
+        // Without extensions, a Token Extensions mint is the same size as a Classic Token Program mint
         return SPL_TOKEN_MINT_SIZE;
     }
     let extension_data_size: usize = extensions.iter().map(|ext| ext.tlv_size()).sum();
@@ -313,6 +314,9 @@ fn calculate_mint_size(extensions: &[MintExtension]) -> usize {
 /// * `decimals` - Number of decimal places for the token (0–9)
 /// * `mint` - Optional custom public key for the mint. If `None`, a unique address will be generated
 /// * `extensions` - Slice of extensions to enable on this mint
+/// * `compute_unit_limit` - The most compute units the transaction may use, or
+///   `None` to simulate the transaction and use the compute units the
+///   simulation used
 ///
 /// # Returns
 ///
@@ -350,6 +354,7 @@ fn calculate_mint_size(extensions: &[MintExtension]) -> usize {
 ///         MintExtension::TransferHook { program_id: hook_program },
 ///         MintExtension::MintCloseAuthority { close_authority: authority.pubkey() },
 ///     ],
+///     None,
 /// ).unwrap();
 /// ```
 pub fn create_token_extensions_mint(
@@ -358,6 +363,7 @@ pub fn create_token_extensions_mint(
     decimals: u8,
     mint: Option<Pubkey>,
     extensions: &[MintExtension],
+    compute_unit_limit: Option<u32>,
 ) -> Result<Pubkey, SolanaKiteError> {
     let mint = mint.unwrap_or(Pubkey::new_unique());
     let mint_size = calculate_mint_size(extensions);
@@ -375,10 +381,10 @@ pub fn create_token_extensions_mint(
                 rent_epoch: 0,
             },
         )
-        .map_err(|e| {
+        .map_err(|error| {
             SolanaKiteError::TokenOperationFailed(format!(
                 "Failed to create Token Extensions mint account: {}",
-                e
+                error
             ))
         })?;
 
@@ -406,6 +412,7 @@ pub fn create_token_extensions_mint(
         instructions,
         &[mint_authority],
         &mint_authority.pubkey(),
+        compute_unit_limit,
     )?;
 
     Ok(mint)
@@ -422,6 +429,9 @@ pub fn create_token_extensions_mint(
 /// * `owner` - Public key of the account that will own the token account
 /// * `mint` - Public key of the Token Extensions mint
 /// * `payer` - Keypair that pays for account creation
+/// * `compute_unit_limit` - The most compute units the transaction may use, or
+///   `None` to simulate the transaction and use the compute units the
+///   simulation used
 ///
 /// # Returns
 ///
@@ -442,8 +452,8 @@ pub fn create_token_extensions_mint(
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let mut litesvm = LiteSVM::new();
 /// let authority = create_wallet(&mut litesvm, 1_000_000_000)?;
-/// let mint = create_token_extensions_mint(&mut litesvm, &authority, 6, None, &[])?;
-/// let ata = create_token_extensions_account(&mut litesvm, &authority.pubkey(), &mint, &authority)?;
+/// let mint = create_token_extensions_mint(&mut litesvm, &authority, 6, None, &[], None)?;
+/// let ata = create_token_extensions_account(&mut litesvm, &authority.pubkey(), &mint, &authority, None)?;
 /// # Ok(())
 /// # }
 /// ```
@@ -452,11 +462,12 @@ pub fn create_token_extensions_account(
     owner: &Pubkey,
     mint: &Pubkey,
     payer: &Keypair,
+    compute_unit_limit: Option<u32>,
 ) -> Result<Pubkey, SolanaKiteError> {
     let associated_token_account = get_token_extensions_account_address(owner, mint);
 
     // CreateAssociatedTokenAccount: the ATA program derives the instruction type
-    // from the account count / layout — no explicit discriminator byte needed.
+    // from the account count / layout - no explicit discriminator byte needed.
     let instruction = Instruction {
         program_id: ASSOCIATED_TOKEN_PROGRAM_ID,
         accounts: vec![
@@ -470,7 +481,13 @@ pub fn create_token_extensions_account(
         data: Vec::new(), // CreateAssociatedTokenAccount has no data
     };
 
-    send_transaction_from_instructions(litesvm, vec![instruction], &[payer], &payer.pubkey())?;
+    send_transaction_from_instructions(
+        litesvm,
+        vec![instruction],
+        &[payer],
+        &payer.pubkey(),
+        compute_unit_limit,
+    )?;
 
     Ok(associated_token_account)
 }
@@ -484,6 +501,9 @@ pub fn create_token_extensions_account(
 /// * `token_account` - Public key of the destination token account
 /// * `amount` - Number of tokens to mint (in base units)
 /// * `mint_authority` - Keypair with mint authority
+/// * `compute_unit_limit` - The most compute units the transaction may use, or
+///   `None` to simulate the transaction and use the compute units the
+///   simulation used
 ///
 /// # Errors
 ///
@@ -503,9 +523,9 @@ pub fn create_token_extensions_account(
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let mut litesvm = LiteSVM::new();
 /// let authority = create_wallet(&mut litesvm, 1_000_000_000)?;
-/// let mint = create_token_extensions_mint(&mut litesvm, &authority, 6, None, &[])?;
-/// let ata = create_token_extensions_account(&mut litesvm, &authority.pubkey(), &mint, &authority)?;
-/// mint_tokens_to_token_extensions_account(&mut litesvm, &mint, &ata, 1_000_000, &authority)?;
+/// let mint = create_token_extensions_mint(&mut litesvm, &authority, 6, None, &[], None)?;
+/// let ata = create_token_extensions_account(&mut litesvm, &authority.pubkey(), &mint, &authority, None)?;
+/// mint_tokens_to_token_extensions_account(&mut litesvm, &mint, &ata, 1_000_000, &authority, None)?;
 /// # Ok(())
 /// # }
 /// ```
@@ -515,6 +535,7 @@ pub fn mint_tokens_to_token_extensions_account(
     token_account: &Pubkey,
     amount: u64,
     mint_authority: &Keypair,
+    compute_unit_limit: Option<u32>,
 ) -> Result<(), SolanaKiteError> {
     let mut data = vec![INSTRUCTION_MINT_TO];
     data.extend_from_slice(&amount.to_le_bytes());
@@ -534,6 +555,7 @@ pub fn mint_tokens_to_token_extensions_account(
         vec![instruction],
         &[mint_authority],
         &mint_authority.pubkey(),
+        compute_unit_limit,
     )?;
 
     Ok(())
@@ -555,6 +577,9 @@ pub fn mint_tokens_to_token_extensions_account(
 /// * `amount` - Amount to transfer (in base units)
 /// * `decimals` - Mint decimals (must match the mint's configured decimals)
 /// * `hook_accounts` - Additional accounts required by the transfer hook (pass `&[]` if none)
+/// * `compute_unit_limit` - The most compute units the transaction may use, or
+///   `None` to simulate the transaction and use the compute units the
+///   simulation used
 ///
 /// # Errors
 ///
@@ -575,11 +600,11 @@ pub fn mint_tokens_to_token_extensions_account(
 /// let mut litesvm = LiteSVM::new();
 /// let authority = create_wallet(&mut litesvm, 1_000_000_000)?;
 /// let user = create_wallet(&mut litesvm, 1_000_000_000)?;
-/// let mint = create_token_extensions_mint(&mut litesvm, &authority, 6, None, &[])?;
-/// let source = create_token_extensions_account(&mut litesvm, &authority.pubkey(), &mint, &authority)?;
-/// let destination = create_token_extensions_account(&mut litesvm, &user.pubkey(), &mint, &authority)?;
-/// mint_tokens_to_token_extensions_account(&mut litesvm, &mint, &source, 1_000_000, &authority)?;
-/// transfer_checked_token_extensions(&mut litesvm, &source, &mint, &destination, &authority, 500_000, 6, &[])?;
+/// let mint = create_token_extensions_mint(&mut litesvm, &authority, 6, None, &[], None)?;
+/// let source = create_token_extensions_account(&mut litesvm, &authority.pubkey(), &mint, &authority, None)?;
+/// let destination = create_token_extensions_account(&mut litesvm, &user.pubkey(), &mint, &authority, None)?;
+/// mint_tokens_to_token_extensions_account(&mut litesvm, &mint, &source, 1_000_000, &authority, None)?;
+/// transfer_checked_token_extensions(&mut litesvm, &source, &mint, &destination, &authority, 500_000, 6, &[], None)?;
 /// # Ok(())
 /// # }
 /// ```
@@ -593,6 +618,7 @@ pub fn transfer_checked_token_extensions(
     amount: u64,
     decimals: u8,
     hook_accounts: &[AccountMeta],
+    compute_unit_limit: Option<u32>,
 ) -> Result<(), SolanaKiteError> {
     let mut data = vec![INSTRUCTION_TRANSFER_CHECKED];
     data.extend_from_slice(&amount.to_le_bytes());
@@ -617,6 +643,7 @@ pub fn transfer_checked_token_extensions(
         vec![instruction],
         &[authority],
         &authority.pubkey(),
+        compute_unit_limit,
     )?;
 
     Ok(())

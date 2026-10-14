@@ -82,6 +82,9 @@ pub fn get_hook_accounts_address(mint: &Pubkey, hook_program_id: &Pubkey) -> Pub
 /// * `mint` - The Token Extensions mint with the TransferHook extension
 /// * `authority` - The mint authority / payer keypair
 /// * `hook_accounts` - Accounts the hook program requires on every transfer
+/// * `compute_unit_limit` - The most compute units the transaction may use, or
+///   `None` to simulate the transaction and use the compute units the
+///   simulation used
 ///
 /// # Errors
 ///
@@ -103,7 +106,7 @@ pub fn get_hook_accounts_address(mint: &Pubkey, hook_program_id: &Pubkey) -> Pub
 /// deploy_program_bytes(&mut litesvm, &hook_program_id, program_bytes).unwrap();
 /// let mint = Pubkey::new_unique(); // a Token Extensions mint with the TransferHook extension
 ///
-/// initialize_hook_accounts(&mut litesvm, &hook_program_id, &mint, &authority, &[]).unwrap();
+/// initialize_hook_accounts(&mut litesvm, &hook_program_id, &mint, &authority, &[], None).unwrap();
 /// ```
 pub fn initialize_hook_accounts(
     litesvm: &mut LiteSVM,
@@ -111,6 +114,7 @@ pub fn initialize_hook_accounts(
     mint: &Pubkey,
     authority: &Keypair,
     hook_accounts: &[HookAccount],
+    compute_unit_limit: Option<u32>,
 ) -> Result<(), SolanaKiteError> {
     let hook_accounts_address = get_hook_accounts_address(mint, hook_program_id);
 
@@ -139,9 +143,12 @@ pub fn initialize_hook_accounts(
         vec![instruction],
         &[authority],
         &authority.pubkey(),
+        compute_unit_limit,
     )
-    .map_err(|e| match e {
-        SolanaKiteError::TransactionFailed(msg) => SolanaKiteError::HookOperationFailed(msg),
+    .map_err(|error| match error {
+        SolanaKiteError::TransactionFailed(message) => {
+            SolanaKiteError::HookOperationFailed(message)
+        }
         other => other,
     })?;
 

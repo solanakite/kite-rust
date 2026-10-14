@@ -2,15 +2,15 @@
 
 use solana_pubkey::Pubkey;
 
-/// SPL Token mint account data size in bytes.
+/// Classic Token Program mint account data size in bytes.
 /// https://docs.rs/spl-token/latest/spl_token/state/struct.Mint.html
 pub const SPL_TOKEN_MINT_SIZE: usize = 82;
 
-/// Byte offset where the amount field begins in the SPL Token account layout.
+/// Byte offset where the amount field begins in the Classic Token Program's token account layout.
 /// https://docs.rs/spl-token/latest/spl_token/state/struct.Account.html
 pub const TOKEN_ACCOUNT_AMOUNT_OFFSET: usize = 64;
 
-/// Byte offset where the amount field ends in the SPL Token account layout.
+/// Byte offset where the amount field ends in the Classic Token Program's token account layout.
 /// https://docs.rs/spl-token/latest/spl_token/state/struct.Account.html
 pub const TOKEN_ACCOUNT_AMOUNT_END: usize = 72;
 
