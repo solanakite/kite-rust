@@ -7,7 +7,8 @@
 //! ## Features
 //!
 //! - **Program Deployment**: Deploy programs to a test environment (from files or bytes)
-//! - **Transaction Utilities**: Send transactions from instructions with proper signing
+//! - **Transaction Utilities**: Send v1 transactions (SIMD-0385) from instructions with proper signing,
+//!   or build one with your own compute and loaded account data limits
 //! - **Token Operations**: Create mints, associated token accounts, and mint tokens
 //! - **Token Extensions Support**: Create Token Extensions mints with extensions, transfer hooks, and more
 //! - **Account Management**: Create wallets, check balances, and manage account state
@@ -21,7 +22,7 @@
 //!
 //! let mut litesvm = LiteSVM::new();
 //! let wallet = create_wallet(&mut litesvm, 1_000_000_000).unwrap(); // 1 SOL
-//! let mint = create_token_mint(&mut litesvm, &wallet, 6, None).unwrap(); // 6 decimals
+//! let mint = create_token_mint(&mut litesvm, &wallet, 6, None, None).unwrap(); // 6 decimals
 //! ```
 
 mod constants;
@@ -46,7 +47,9 @@ pub use token_extensions::{
     get_token_extensions_account_address, mint_tokens_to_token_extensions_account,
     transfer_checked_token_extensions, MintExtension, TokenAccountState,
 };
-pub use transaction::send_transaction_from_instructions;
+pub use transaction::{
+    build_transaction_from_instructions, get_transaction_config, send_transaction_from_instructions,
+};
 pub use transfer_hook::{
     build_hook_accounts, get_hook_accounts_address, initialize_hook_accounts, HookAccount,
 };

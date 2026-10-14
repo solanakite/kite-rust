@@ -41,8 +41,10 @@ pub fn create_wallet(
     let wallet = Keypair::new();
     litesvm
         .airdrop(&wallet.pubkey(), airdrop_amount)
-        .map_err(|e| {
-            SolanaKiteError::AccountOperationFailed(format!("Failed to airdrop to wallet: {e:?}"))
+        .map_err(|error| {
+            SolanaKiteError::AccountOperationFailed(format!(
+                "Failed to airdrop to wallet: {error:?}"
+            ))
         })?;
     Ok(wallet)
 }
@@ -110,7 +112,7 @@ pub fn create_wallets(
 pub fn get_sol_balance(litesvm: &LiteSVM, address: &Pubkey) -> u64 {
     litesvm
         .get_account(address)
-        .map(|a| a.lamports)
+        .map(|account| account.lamports)
         .unwrap_or(0)
 }
 
@@ -170,7 +172,7 @@ pub fn check_account_is_closed(litesvm: &LiteSVM, account: &Pubkey, message: &st
     assert!(
         litesvm
             .get_account(account)
-            .is_none_or(|a| a.data.is_empty()),
+            .is_none_or(|account| account.data.is_empty()),
         "{}",
         message
     );

@@ -4,13 +4,13 @@
 [![Documentation](https://docs.rs/solana-kite/badge.svg)](https://docs.rs/solana-kite)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 
-A Rust library that works great with [LiteSVM](https://litesvm.org) for testing your Solana programs. High-level abstractions for common Solana operations — wallets, transactions, SPL tokens, Token Extensions, transfer hooks, PDAs, and program deployment.
+A Rust library that works great with [LiteSVM](https://litesvm.org) for testing your Solana programs. High-level abstractions for common Solana operations: wallets, transactions, tokens, Token Extensions, transfer hooks, PDAs, and program deployment.
 
 ## Features
 
 - 🚀 **Program Deployment**: Deploy programs from files or bytes (`include_bytes!`)
-- 💸 **Transaction Utilities**: Send transactions from instructions with proper signing
-- 🪙 **SPL Token Operations**: Create mints, ATAs, mint tokens, check balances
+- 💸 **Transaction Utilities**: Send v1 transactions (SIMD-0385) from instructions with proper signing
+- 🪙 **Token Operations**: Create mints, ATAs, mint tokens, check balances
 - 🔐 **Token Extensions**: Create mints with transfer hooks, transfer fees, permanent delegates, non-transferable tokens, and more
 - 🪝 **Transfer Hook Support**: ExtraAccountMetaList setup and transfer helpers
 - 👛 **Wallet Management**: Create funded wallets in one call
@@ -27,7 +27,7 @@ or add to your `Cargo.toml`:
 
 ```toml
 [dev-dependencies]
-solana-kite = "0.5"
+solana-kite = "0.6"
 ```
 
 **Compatibility:** Solana 3.x / Anchor 1.2 / LiteSVM 0.16
@@ -44,14 +44,16 @@ let mut svm = LiteSVM::new();
 // Create a funded wallet
 let authority = create_wallet(&mut svm, 1_000_000_000).unwrap();
 
-// Create a token mint (6 decimals, like USDC)
-let mint = create_token_mint(&mut svm, &authority, 6, None).unwrap();
+// Create a token mint (6 decimals, like USDC). The last argument of every function
+// that sends a transaction is its compute unit limit: None simulates the
+// transaction to find it.
+let mint = create_token_mint(&mut svm, &authority, 6, None, None).unwrap();
 
 // Create associated token account
-let ata = create_associated_token_account(&mut svm, &authority.pubkey(), &mint, &authority).unwrap();
+let ata = create_associated_token_account(&mut svm, &authority.pubkey(), &mint, &authority, None).unwrap();
 
 // Mint 1000 tokens
-mint_tokens_to_token_account(&mut svm, &mint, &ata, 1_000_000_000, &authority).unwrap();
+mint_tokens_to_token_account(&mut svm, &mint, &ata, 1_000_000_000, &authority, None).unwrap();
 ```
 
 ## API Overview
@@ -84,10 +86,50 @@ send_transaction_from_instructions(
     vec![instruction1, instruction2],
     &[&payer, &other_signer],
     &payer.pubkey(),
+    Some(200_000), // compute unit limit, or None to simulate and use what the simulation used
 )?;
 ```
 
-### SPL Token Operations
+Every transaction kite builds is a v1 transaction (SIMD-0385, live on mainnet beta since 15 September
+2026), including the ones its token, Token Extensions and transfer hook helpers send. `create_wallet`
+funds a wallet with LiteSVM's airdrop, which LiteSVM builds as a legacy transaction.
+
+A v1 transaction holds up to 4,096 bytes. Its compute unit, loaded account data and heap limits, and
+its priority fee, are part of the transaction itself, in a `TransactionConfig` in the message, and an
+unset compute unit or loaded account data limit is zero. So:
+
+- **The compute unit limit is the last argument** of `send_transaction_from_instructions` and of every
+  token, Token Extensions and transfer hook helper: `compute_unit_limit: Option<u32>`.
+  - `Some(limit)` sends the transaction with that limit. Choose a number your instructions run in, and
+    the test fails if they need more: a transaction that runs out of compute units fails.
+  - `None` simulates the transaction in LiteSVM and sends it with the compute units the simulation
+    used. It never fails for running out, so it does not check how many compute units your program
+    uses.
+- **Kite sets the loaded account data limit** to the most a transaction may load, Agave's
+  `MAX_LOADED_ACCOUNTS_DATA_SIZE_BYTES` (64 MiB in `solana-compute-budget` 4.2). The heap is 32 KiB and
+  there is no priority fee. See `get_transaction_config`.
+- **ComputeBudget instructions are rejected.** A ComputeBudget instruction in a v1 transaction does
+  nothing, so kite returns an error for one rather than let a test believe it set a limit or priority
+  fee.
+
+To read logs or compute units, measure a transaction, or set every limit yourself, build it with
+`build_transaction_from_instructions` and send it through LiteSVM:
+
+```rust
+use solana_kite::{build_transaction_from_instructions, get_transaction_config};
+
+let transaction = build_transaction_from_instructions(
+    &svm,
+    &instructions,
+    &[&payer],
+    &payer.pubkey(),
+    get_transaction_config(50_000),
+)?;
+let metadata = svm.send_transaction(transaction).unwrap();
+println!("{} compute units", metadata.compute_units_consumed);
+```
+
+### Token Operations
 
 ```rust
 use solana_kite::{
@@ -95,20 +137,20 @@ use solana_kite::{
     mint_tokens_to_token_account, get_token_account_balance, assert_token_account_balance,
 };
 
-let mint = create_token_mint(&mut svm, &authority, 9, None)?;
+let mint = create_token_mint(&mut svm, &authority, 9, None, None)?;
 
 // Pre-compute the ATA address before creating it
 let ata_address = get_token_account_address(&owner.pubkey(), &mint);
 
-let ata = create_associated_token_account(&mut svm, &owner.pubkey(), &mint, &payer)?;
+let ata = create_associated_token_account(&mut svm, &owner.pubkey(), &mint, &payer, None)?;
 assert_eq!(ata_address, ata);
-mint_tokens_to_token_account(&mut svm, &mint, &ata, 1_000_000_000, &authority)?;
+mint_tokens_to_token_account(&mut svm, &mint, &ata, 1_000_000_000, &authority, None)?;
 assert_token_account_balance(&svm, &ata, 1_000_000_000, "Should have 1B tokens");
 ```
 
 ### Token Extensions
 
-Create mints with extensions — transfer hooks, transfer fees, permanent delegates, non-transferable tokens, and more:
+Create mints with extensions: transfer hooks, transfer fees, permanent delegates, non-transferable tokens, and more:
 
 ```rust
 use solana_kite::{
@@ -127,48 +169,55 @@ let mint = create_token_extensions_mint(
         fee_basis_points: 100, // 1%
         maximum_fee: 1_000_000,
     }],
+    None,
 )?;
 
 // Pre-compute an ATA address before creating it (e.g. to pass to a program instruction)
 let sender_ata_address = get_token_extensions_account_address(&sender.pubkey(), &mint);
 
 // Create token accounts, mint, and transfer
-let sender_ata = create_token_extensions_account(&mut svm, &sender.pubkey(), &mint, &payer)?;
-let receiver_ata = create_token_extensions_account(&mut svm, &receiver.pubkey(), &mint, &payer)?;
-mint_tokens_to_token_extensions_account(&mut svm, &mint, &sender_ata, 1_000_000, &authority)?;
-transfer_checked_token_extensions(&mut svm, &sender_ata, &mint, &receiver_ata, &sender, 500_000, 6, &[])?;
+let sender_ata = create_token_extensions_account(&mut svm, &sender.pubkey(), &mint, &payer, None)?;
+let receiver_ata = create_token_extensions_account(&mut svm, &receiver.pubkey(), &mint, &payer, None)?;
+mint_tokens_to_token_extensions_account(&mut svm, &mint, &sender_ata, 1_000_000, &authority, None)?;
+transfer_checked_token_extensions(&mut svm, &sender_ata, &mint, &receiver_ata, &sender, 500_000, 6, &[], None)?;
 
 ```
 
 **Supported extensions:**
-- `TransferHook` — attach a hook program to transfers
-- `TransferFee` — automatic fee collection on transfers
-- `MintCloseAuthority` — allow closing the mint account
-- `PermanentDelegate` — irrevocable delegate authority
-- `NonTransferable` — soulbound tokens
-- `DefaultAccountState` — new token accounts start in a given `TokenAccountState` (Frozen, Initialized, or Uninitialized)
-- `InterestBearing` — display interest rate on token
-- `MetadataPointer` — point to onchain metadata
+- `TransferHook` - attach a hook program to transfers
+- `TransferFee` - automatic fee collection on transfers
+- `MintCloseAuthority` - allow closing the mint account
+- `PermanentDelegate` - irrevocable delegate authority
+- `NonTransferable` - soulbound tokens
+- `DefaultAccountState` - new token accounts start in a given `TokenAccountState` (Frozen, Initialized, or Uninitialized)
+- `InterestBearing` - display interest rate on token
+- `MetadataPointer` - point to onchain metadata
 
 ### Transfer Hooks
 
 ```rust
 use solana_kite::{
-    initialize_hook_accounts, get_hook_accounts_address,
-    build_hook_accounts, HookAccount,
+    build_hook_accounts, get_hook_accounts_address, initialize_hook_accounts, HookAccount,
 };
 
-// Initialize the ExtraAccountMetaList PDA for your hook program
+// The extra accounts your hook program reads on every transfer
+let hook_accounts: Vec<HookAccount> = vec![/* ... */];
+
+// Initialize the ExtraAccountMetaList account for your hook program
 initialize_hook_accounts(
     &mut svm,
     &hook_program_id,
     &mint,
     &authority,
     &hook_accounts,
+    None,
 )?;
 
-// Build accounts to pass into a hook-aware transfer
-let hook_accounts = build_hook_accounts(&mint, &hook_program_id, &hook_accounts);
+// The ExtraAccountMetaList PDA, e.g. to pass to your hook program's instructions
+let extra_account_meta_list_address = get_hook_accounts_address(&mint, &hook_program_id);
+
+// Build the account list to pass as `hook_accounts` to transfer_checked_token_extensions
+let transfer_hook_account_metas = build_hook_accounts(&mint, &hook_program_id, &hook_accounts);
 ```
 
 ### Program Deployment
@@ -205,16 +254,16 @@ check_account_is_closed(&svm, &account_pubkey, "Account should be closed after t
 
 ## Error Handling
 
-All functions return `Result<T, SolanaKiteError>`:
+Every function that can fail returns `Result<T, SolanaKiteError>`:
 
 ```rust
 use solana_kite::SolanaKiteError;
 
 match some_operation() {
     Ok(result) => println!("Success: {:?}", result),
-    Err(SolanaKiteError::TransactionFailed(msg)) => eprintln!("Tx failed: {}", msg),
-    Err(SolanaKiteError::TokenOperationFailed(msg)) => eprintln!("Token op failed: {}", msg),
-    Err(e) => eprintln!("Error: {}", e),
+    Err(SolanaKiteError::TransactionFailed(message)) => eprintln!("Transaction failed: {message}"),
+    Err(SolanaKiteError::TokenOperationFailed(message)) => eprintln!("Token operation failed: {message}"),
+    Err(error) => eprintln!("Error: {error}"),
 }
 ```
 
@@ -235,7 +284,7 @@ cargo test
 
 ## License
 
-MIT — see [LICENSE.md](LICENSE.md).
+MIT - see [LICENSE.md](LICENSE.md).
 
 ---
 

@@ -42,6 +42,7 @@ fn main() {
         &[MintExtension::TransferHook {
             program_id: hook_program_id,
         }],
+        None,
     )
     .unwrap();
     println!("Created mint with TransferHook extension: {}", mint);
@@ -61,6 +62,7 @@ fn main() {
     //       &mint,
     //       &authority,
     //       &hook_accounts,
+    //       None,
     //   ).unwrap();
     //
     // With a custom hook that needs extra accounts you would add entries like:
@@ -72,9 +74,10 @@ fn main() {
 
     // 4. Create token accounts and mint tokens.
     let sender_ata =
-        create_token_extensions_account(&mut litesvm, &sender.pubkey(), &mint, &authority).unwrap();
+        create_token_extensions_account(&mut litesvm, &sender.pubkey(), &mint, &authority, None)
+            .unwrap();
     let receiver_ata =
-        create_token_extensions_account(&mut litesvm, &receiver.pubkey(), &mint, &authority)
+        create_token_extensions_account(&mut litesvm, &receiver.pubkey(), &mint, &authority, None)
             .unwrap();
 
     mint_tokens_to_token_extensions_account(
@@ -83,6 +86,7 @@ fn main() {
         &sender_ata,
         1_000_000,
         &authority,
+        None,
     )
     .unwrap();
     println!("Minted 1,000,000 tokens to sender");
@@ -101,6 +105,7 @@ fn main() {
         500_000,
         6,
         &extra_accounts,
+        None,
     )
     .unwrap();
     println!("Transferred 500,000 tokens from sender to receiver via hook-aware transfer");

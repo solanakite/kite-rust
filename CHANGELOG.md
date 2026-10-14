@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - Unreleased
+
+### Breaking Changes
+
+- **v1 transactions**: `send_transaction_from_instructions` now sends a v1 transaction (SIMD-0385, live on mainnet beta since 15 September 2026, epoch 1035) instead of a legacy one, so every helper that sends a transaction does too: `create_token_mint`, `create_associated_token_account`, `mint_tokens_to_token_account`, the Token Extensions helpers and `initialize_hook_accounts`. A v1 transaction holds up to 4,096 bytes rather than 1,232. `create_wallet` still funds wallets with LiteSVM's airdrop, which LiteSVM builds as a legacy transaction.
+- **Every transaction states its limits**: a v1 transaction carries its limits and priority fee in a `TransactionConfig`, and an unset compute unit or loaded account data limit is zero, so kite sets both in every transaction it builds. Where the compute unit limit comes from:
+  - `send_transaction_from_instructions`, `create_token_mint`, `create_associated_token_account`, `mint_tokens_to_token_account`, `create_token_extensions_mint`, `create_token_extensions_account`, `mint_tokens_to_token_extensions_account`, `transfer_checked_token_extensions` and `initialize_hook_accounts` take a new last argument, `compute_unit_limit: Option<u32>`.
+  - `Some(limit)` uses that limit, so a test fails if its transaction needs more.
+  - `None` simulates the transaction and sends it with the compute units the simulation used.
+  - Kite sets the loaded account data limit to 64 MiB, the most a transaction may load.
+- **ComputeBudget instructions are rejected**: a v1 transaction ignores them, so `build_transaction_from_instructions`, and so `send_transaction_from_instructions`, return `SolanaKiteError::TransactionFailed` for one, rather than let a test believe it set a limit or priority fee. Remove ComputeBudget instructions, and pass the compute unit limit as `compute_unit_limit`, or set limits and a priority fee in the config passed to `build_transaction_from_instructions`.
+
+### Added
+
+- `build_transaction_from_instructions`: builds and signs a v1 transaction with a given config, for tests that read logs or compute units, measure the transaction, or set every limit themselves. A keypair passed twice signs once.
+- `get_transaction_config`: the config kite gives a transaction with a given compute unit limit, with 64 MiB of loaded account data, a 32 KiB heap and no priority fee.
+- `solana-compute-budget` 4.2 dependency: kite reads the loaded account data limit from Agave's `MAX_LOADED_ACCOUNTS_DATA_SIZE_BYTES`, and simulates a transaction with `MAX_COMPUTE_UNIT_LIMIT` when no compute unit limit is passed. litesvm 0.16 already depends on the same version.
+- `solana-sdk-ids` 3.1 dependency: kite identifies ComputeBudget instructions by the ComputeBudget program ID. litesvm 0.16 already depends on the same version.
+
+### Notes
+
+- All 2 unit tests, 30 integration tests and 26 doc-tests pass.
+
 ## [0.5.0] - 2026-09-08
 
 ### Breaking Changes

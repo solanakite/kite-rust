@@ -37,10 +37,10 @@ pub fn deploy_program(
     program_id: &Pubkey,
     program_path: &str,
 ) -> Result<(), SolanaKiteError> {
-    let program_bytes = fs::read(program_path).map_err(|e| {
+    let program_bytes = fs::read(program_path).map_err(|error| {
         SolanaKiteError::ProgramDeploymentFailed(format!(
             "Failed to read program binary at {}: {}",
-            program_path, e
+            program_path, error
         ))
     })?;
 
@@ -90,8 +90,8 @@ pub fn deploy_program_bytes(
                 rent_epoch: 0,
             },
         )
-        .map_err(|e| {
-            SolanaKiteError::ProgramDeploymentFailed(format!("Failed to deploy program: {}", e))
+        .map_err(|error| {
+            SolanaKiteError::ProgramDeploymentFailed(format!("Failed to deploy program: {}", error))
         })?;
 
     Ok(())

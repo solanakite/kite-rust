@@ -33,16 +33,17 @@ fn main() {
                 delegate: authority.pubkey(),
             },
         ],
+        None,
     )
     .unwrap();
     println!("Created Token Extensions mint: {}", mint);
 
     // Create associated token accounts
     let authority_ata =
-        create_token_extensions_account(&mut litesvm, &authority.pubkey(), &mint, &authority)
+        create_token_extensions_account(&mut litesvm, &authority.pubkey(), &mint, &authority, None)
             .unwrap();
     let user_ata =
-        create_token_extensions_account(&mut litesvm, &user.pubkey(), &mint, &user).unwrap();
+        create_token_extensions_account(&mut litesvm, &user.pubkey(), &mint, &user, None).unwrap();
     println!("Authority ATA: {}", authority_ata);
     println!("User ATA:      {}", user_ata);
 
@@ -54,6 +55,7 @@ fn main() {
         &authority_ata,
         mint_amount,
         &authority,
+        None,
     )
     .unwrap();
     println!("Minted {} tokens to authority", mint_amount);
@@ -69,6 +71,7 @@ fn main() {
         transfer_amount,
         6,
         &[], // no extra accounts needed (no transfer hook)
+        None,
     )
     .unwrap();
     println!("Transferred {} tokens to user", transfer_amount);

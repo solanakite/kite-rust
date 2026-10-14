@@ -2677,19 +2677,25 @@ dependencies = [
 
 [[package]]
 name = "solana-kite"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "litesvm",
  "solana-account",
+ "solana-compute-budget",
+ "solana-compute-budget-interface",
  "solana-instruction",
  "solana-keypair",
  "solana-message 4.4.1",
+ "solana-packet",
  "solana-program",
  "solana-pubkey 3.0.0",
+ "solana-sdk-ids",
  "solana-signer",
+ "solana-system-interface 3.2.0",
  "solana-transaction",
  "spl-associated-token-account",
  "spl-token",
+ "wincode",
 ]
 
 [[package]]
