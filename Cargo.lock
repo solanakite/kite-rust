@@ -2677,7 +2677,7 @@ dependencies = [
 
 [[package]]
 name = "solana-kite"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "litesvm",
  "solana-account",

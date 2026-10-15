@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - Unreleased
+
+### Fixed
+
+- **No program entrypoints**: `spl-token` and `spl-associated-token-account` are built with their `no-entrypoint` feature. Without it each defined an `entrypoint` symbol, so a test binary linking kite and an Anchor program failed with `duplicate symbol: entrypoint`. Anchor's IDL build links the tests, so `anchor build` failed for `compression/cnft-vault` in solana-program-examples. Kite only calls their instruction builders; the token programs themselves run inside LiteSVM.
+
 ## [0.6.0] - Unreleased
 
 ### Breaking Changes
