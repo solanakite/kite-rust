@@ -1,6 +1,6 @@
 [package]
 name = "solana-kite"
-version = "0.6.0"
+version = "0.6.1"
 edition = "2021"
 authors = ["Mike MacCana <mike.maccana@gmail.com>"]
 description = "High level client-side tools for testing your Solana programs"
@@ -36,8 +36,11 @@ solana-signer = "3.0.0"
 solana-sdk-ids = "3.1"
 solana-transaction = "4.1.5"
 
-spl-token = "9.0.0"
-spl-associated-token-account = "8.0.0"
+# kite calls these crates' instruction builders; the token programs themselves run
+# inside LiteSVM. Without `no-entrypoint` each defines an `entrypoint` symbol, which
+# clashes with the program under test's when a test binary links both.
+spl-token = { version = "9.0.0", features = ["no-entrypoint"] }
+spl-associated-token-account = { version = "8.0.0", features = ["no-entrypoint"] }
 
 [dev-dependencies]
 # PACKET_DATA_SIZE, the 1,232-byte legacy transaction size limit, and wincode,
