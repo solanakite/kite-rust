@@ -5,13 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.6.1] - Unreleased
+## [0.7.0] - 2026-10-28
+
+### Breaking Changes
+
+- **LiteSVM 0.18**: Bumped from 0.16.0 to 0.18.1, adding support for Agave 4.3
+- **Rust 1.97.1**: litesvm 0.18 needs Rust 1.97.1, so kite now sets `rust-version = "1.97.1"`
+- **`solana-compute-budget` 4.3**: moved from 4.2 to the version litesvm 0.18 uses
+
+### Notes
+
+- `solana-instruction` 3.5 re-exports `solana-instruction` 4.0, which serializes with wincode 0.6. `solana-loader-v3-interface` 8.0.1, which litesvm 0.18 depends on, still uses wincode 0.5 and fails to compile against it. 8.1.1 fixes this: a project with 8.0.1 in its `Cargo.lock` should run `cargo update -p solana-loader-v3-interface`.
+- The tests' `wincode` dev-dependency moved from 0.5 to 0.6, the version `solana-transaction` now uses.
+- Anchor 1.2 programs still build alongside kite.
+- No source changes were required. All 2 unit tests, 30 integration tests and 26 doc-tests pass.
+
+## [0.6.1] - 2026-10-15
 
 ### Fixed
 
 - **No program entrypoints**: `spl-token` and `spl-associated-token-account` are built with their `no-entrypoint` feature. Without it each defined an `entrypoint` symbol, so a test binary linking kite and an Anchor program failed with `duplicate symbol: entrypoint`. Anchor's IDL build links the tests, so `anchor build` failed for `compression/cnft-vault` in solana-program-examples. Kite only calls their instruction builders; the token programs themselves run inside LiteSVM.
 
-## [0.6.0] - Unreleased
+## [0.6.0] - 2026-10-14
 
 ### Breaking Changes
 
